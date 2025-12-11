@@ -1,0 +1,106 @@
+﻿@model WebSite_DatBanh.Models.KhachHang
+@{
+    ViewData["Title"] = "Trang cá nhân";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+}
+
+<div class="container my-4">
+    <div class="row g-4">
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0" style="position: sticky; top: 100px;">
+                <div class="card-body text-center">
+                    <div class="display-1 text-primary opacity-50 mb-3">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <h4 class="mb-1">@Model.HOTEN</h4>
+                    <p class="text-muted">@Model.TENDN</p>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a asp-action="Index" class="list-group-item list-group-item-action active">
+                        <i class="fas fa-fw fa-user-edit me-2"></i> Thông tin cá nhân
+                    </a>
+                    <a asp-action="History" class="list-group-item list-group-item-action">
+                        <i class="fas fa-fw fa-receipt me-2"></i> Đơn hàng của tôi
+                    </a>
+                    <a asp-controller="Account" asp-action="Logout" class="list-group-item list-group-item-action text-danger">
+                        <i class="fas fa-fw fa-sign-out-alt me-2"></i> Đăng xuất
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0">Cập nhật Thông tin cá nhân</h5>
+                </div>
+                <div class="card-body">
+
+                    @if (ViewBag.SuccessMessage != null)
+                    {
+                        <div class="alert alert-success">@ViewBag.SuccessMessage</div>
+                    }
+                    @if (ViewBag.ErrorMessage != null)
+                    {
+                        <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+                    }
+
+                    <form method="post" asp-action="Index">
+                        <input type="hidden" asp-for="MAKH" />
+
+                        <input type="hidden" asp-for="TENDN" />
+                        <input type="hidden" asp-for="MATKHAU" />
+
+                        <div class="row g-3">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Mã khách hàng</label>
+                                <input asp-for="MAKH" class="form-control" readonly />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Tên đăng nhập</label>
+                                <input asp-for="TENDN" class="form-control" readonly />
+                            </div>
+
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold" asp-for="HOTEN">Họ và tên</label>
+                                <input asp-for="HOTEN" class="form-control" />
+                                <span asp-validation-for="HOTEN" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold" asp-for="EMAIL">Email</label>
+                                <input asp-for="EMAIL" class="form-control" />
+                                <span asp-validation-for="EMAIL" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold" asp-for="SDT">Số điện thoại</label>
+                                <input asp-for="SDT" class="form-control" />
+                                <span asp-validation-for="SDT" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-12 mb-3">
+                                <label class="form-label fw-bold" asp-for="DIACHI">Địa chỉ</label>
+                                <textarea asp-for="DIACHI" class="form-control" rows="3"></textarea>
+                                <span asp-validation-for="DIACHI" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i> Lưu thay đổi
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

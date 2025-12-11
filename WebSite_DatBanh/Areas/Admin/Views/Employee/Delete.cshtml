@@ -1,0 +1,42 @@
+﻿@model WebSite_DatBanh.Models.NhanVien
+@{
+    ViewData["Title"] = "Xác nhận Xóa";
+    Layout = "/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card shadow-sm border-0 col-lg-8">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">Xác nhận Xóa Nhân viên</h5>
+    </div>
+    <div class="card-body">
+        <h4 class="card-title">Bạn có chắc chắn muốn xóa nhân viên này?</h4>
+        <p>Hành động này không thể hoàn tác.</p>
+
+        <hr />
+
+        <dl class="row">
+            <dt class="col-sm-3">Mã NV:</dt>
+            <dd class="col-sm-9">@Model.MANV</dd>
+
+            <dt class="col-sm-3">Họ tên:</dt>
+            <dd class="col-sm-9">@Model.HOTEN</dd>
+
+            <dt class="col-sm-3">Chức vụ:</dt>
+            <dd class="col-sm-9">@Model.CHUCVU</dd>
+        </dl>
+
+        <hr />
+
+        <form asp-action="Delete" method="post">
+            <input type="hidden" asp-for="MANV" />
+
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash-alt me-2"></i> Vâng, Xóa
+            </button>
+
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-times me-2"></i> Hủy
+            </a>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,208 @@
+﻿@model WebSite_DatBanh.Models.GioHang
+@{
+    ViewData["Title"] = "Thanh toán";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    // Chúng ta không cần ViewBag.kh nữa, vì KHACHHANG đã có trong Model
+}
+
+@section Styles {
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+}
+
+<div class="container my-4">
+
+    <div class="text-center mb-4">
+        <h1 class="h3">Hoàn tất đơn hàng</h1>
+        <p class="text-muted">Vui lòng kiểm tra thông tin và chọn phương thức thanh toán</p>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i> Thông tin giao hàng</h5>
+                </div>
+                <div class="card-body">
+                    <input type="hidden" name="MAKH" value="@Model.KHACHHANG?.MAKH" form="paymentForm" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Họ và tên</label>
+                        <input type="text" class="form-control" name="HOTEN" value="@Model.KHACHHANG?.HOTEN" form="paymentForm" required />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="EMAIL" value="@Model.KHACHHANG?.EMAIL" form="paymentForm" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Số điện thoại</label>
+                            <input type="tel" class="form-control" name="SDT" value="@Model.KHACHHANG?.SDT" form="paymentForm" required />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Địa chỉ giao hàng</label>
+                        <textarea class="form-control" name="DIACHI" rows="2" form="paymentForm" required>@Model.KHACHHANG?.DIACHI</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <form asp-controller="Payment" asp-action="CreatePayment" method="post" id="paymentForm">
+                <input type="hidden" name="magh" value="@Model.MAGH" />
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-light border-0">
+                        <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i> Phương thức thanh toán</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="paymentError" class="alert alert-danger d-none small p-2">Vui lòng chọn 1 phương thức thanh toán.</div>
+
+                        <div class="form-check border p-3 rounded mb-3">
+                            <input class="form-check-input" type="radio" name="phuongThuc" value="TIỀN MẶT" id="cod" />
+                            <label class="form-check-label d-flex justify-content-between align-items-center" for="cod">
+                                <div><strong class="d-block">Thanh toán khi nhận hàng (COD)</strong><span class="text-muted small">Thanh toán bằng tiền mặt khi nhận hàng.</span></div>
+                                <i class="fas fa-truck text-success fs-3"></i>
+                            </label>
+                        </div>
+
+                        <div class="form-check border p-3 rounded">
+                            <input class="form-check-input" type="radio" name="phuongThuc" value="CHUYỂN KHOẢN" id="bank" />
+                            <label class="form-check-label d-flex justify-content-between align-items-center" for="bank">
+                                <div><strong class="d-block">Chuyển khoản ngân hàng / Quét QR</strong><span class="text-muted small">Quét mã QR để thanh toán ngay.</span></div>
+                                <i class="fas fa-university text-primary fs-3"></i>
+                            </label>
+                        </div>
+
+                        <div id="bankInfo" class="mt-3 p-3 bg-light rounded d-none">
+                            <h6 class="mb-3">Vui lòng chuyển khoản tới một trong các tài khoản sau:</h6>
+
+                            <ul class="nav nav-pills nav-fill mb-3" id="bank-tabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="info-vcb-tab" data-bs-toggle="pill" data-bs-target="#info-vcb" type="button" role="tab">Vietcombank</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="info-tcb-tab" data-bs-toggle="pill" data-bs-target="#info-tcb" type="button" role="tab">Techcombank</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="info-acb-tab" data-bs-toggle="pill" data-bs-target="#info-acb" type="button" role="tab">ACB</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="info-bidv-tab" data-bs-toggle="pill" data-bs-target="#info-bidv" type="button" role="tab">BIDV</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="info-mbb-tab" data-bs-toggle="pill" data-bs-target="#info-mbb" type="button" role="tab">MB Bank</button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content" id="bank-tabs-content">
+
+                                <div class="tab-pane fade show active p-3 border rounded" id="info-vcb" role="tabpanel">
+                                    <p class="mb-1"><strong>Ngân hàng:</strong> Vietcombank (VCB)</p>
+                                    <p class="mb-1"><strong>Chủ tài khoản:</strong> ABVN CAKE SHOP</p>
+                                    <p class="mb-1"><strong>Số tài khoản:</strong> 123456789</p>
+                                    <p class="mb-0"><strong>Nội dung:</strong> <span class="text-danger fw-bold">TT @Model.KHACHHANG.MAKH</span></p>
+                                </div>
+                                <div class="tab-pane fade p-3 border rounded" id="info-tcb" role="tabpanel">
+                                    <p class="mb-1"><strong>Ngân hàng:</strong> Techcombank (TCB)</p>
+                                    <p class="mb-1"><strong>Chủ tài khoản:</strong> ABVN CAKE SHOP</p>
+                                    <p class="mb-1"><strong>Số tài khoản:</strong> 987654321</p>
+                                    <p class="mb-0"><strong>Nội dung:</strong> <span class="text-danger fw-bold">TT @Model.KHACHHANG.MAKH</span></p>
+                                </div>
+                                <div class="tab-pane fade p-3 border rounded" id="info-acb" role="tabpanel">
+                                    <p class="mb-1"><strong>Ngân hàng:</strong> ACB</p>
+                                    <p class="mb-1"><strong>Chủ tài khoản:</strong> ABVN CAKE SHOP</p>
+                                    <p class="mb-1"><strong>Số tài khoản:</strong> 11223344</p>
+                                    <p class="mb-0"><strong>Nội dung:</strong> <span class="text-danger fw-bold">TT @Model.KHACHHANG.MAKH</span></p>
+                                </div>
+                                <div class="tab-pane fade p-3 border rounded" id="info-bidv" role="tabpanel">
+                                    <p class="mb-1"><strong>Ngân hàng:</strong> BIDV</p>
+                                    <p class="mb-1"><strong>Chủ tài khoản:</strong> ABVN CAKE SHOP</p>
+                                    <p class="mb-1"><strong>Số tài khoản:</strong> 55667788</p>
+                                    <p class="mb-0"><strong>Nội dung:</strong> <span class="text-danger fw-bold">TT @Model.KHACHHANG.MAKH</span></p>
+                                </div>
+                                <div class="tab-pane fade p-3 border rounded" id="info-mbb" role="tabpanel">
+                                    <p class="mb-1"><strong>Ngân hàng:</strong> MB Bank</p>
+                                    <p class="mb-1"><strong>Chủ tài khoản:</strong> ABVN CAKE SHOP</p>
+                                    <p class="mb-1"><strong>Số tài khoản:</strong> 99998888</p>
+                                    <p class="mb-0"><strong>Nội dung:</strong> <span class="text-danger fw-bold">TT @Model.KHACHHANG.MAKH</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div> <div class="col-lg-5">
+            <div class="card shadow-sm border-0" style="position: sticky; top: 100px;">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i> Tóm tắt đơn hàng</h5>
+                </div>
+                <div class="card-body">
+
+                    <div class="list-group list-group-flush mb-3" style="max-height: 300px; overflow-y: auto;">
+                        @foreach (var item in Model.CT_GIOHANG)
+                        {
+                            <div class="list-group-item d-flex align-items-center px-0">
+                                <img src="@Url.Content(item.SANPHAM.ANHSP)" alt="@item.SANPHAM.TENSP"
+                                     style="width: 60px; height: 60px; object-fit: cover;" class="rounded me-3" />
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0 small">@item.SANPHAM.TENSP</h6>
+                                    <small class="text-muted">Cỡ: @item.KICHCO | SL: @item.SOLUONG</small>
+                                </div>
+                                <span class="text-dark fw-bold small">@String.Format("{0:N0}đ", (item.SOLUONG * item.SANPHAM.GIA))</span>
+                            </div>
+                        }
+                    </div>
+
+                    <hr />
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Tạm tính:</span>
+                        <span class="fw-bold">@String.Format("{0:N0}đ", ViewBag.TongTien)</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Phí vận chuyển:</span>
+                        <span class="fw-bold text-success">Miễn phí</span>
+                    </div>
+                    <hr />
+                    <div class="d-flex justify-content-between h5 fw-bold">
+                        <span>Tổng cộng:</span>
+                        <span class="text-danger">@String.Format("{0:N0}đ", ViewBag.TongTien)</span>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" form="paymentForm" class="btn btn-primary btn-lg fw-bold">
+                            <i class="fas fa-check me-2"></i> Đặt hàng
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const radioBank = document.getElementById('bank');
+        const radioCod = document.getElementById('cod');
+        const bankInfo = document.getElementById('bankInfo');
+        radioBank.addEventListener('change', function() {
+            if (this.checked) { bankInfo.classList.remove('d-none'); }
+        });
+        radioCod.addEventListener('change', function() {
+            if (this.checked) { bankInfo.classList.add('d-none'); }
+        });
+        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            var errorDiv = document.getElementById('paymentError');
+            if (!radioBank.checked && !radioCod.checked) {
+                e.preventDefault();
+                errorDiv.classList.remove('d-none');
+            } else {
+                errorDiv.classList.add('d-none');
+                this.querySelector('button[type="submit"]').disabled = true;
+                this.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Đang xử lý...';
+            }
+        });
+    </script>
+}

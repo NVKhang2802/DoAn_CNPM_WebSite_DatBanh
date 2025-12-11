@@ -1,0 +1,202 @@
+﻿@model IEnumerable<WebSite_DatBanh.Models.SanPham>
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Danh sách sản phẩm";
+    Layout = "_Layout";
+    // Lấy Session để kiểm tra đăng nhập
+    var maKh_Session = Context.Session.GetString("MAKH");
+}
+
+@section Styles {
+    <style>
+        /* --- Style cho Thanh Lọc --- */
+        .filter-bar {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        /* --- Style cho Card Sản phẩm --- */
+        .product-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid #eee;
+        }
+
+            .product-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+                border-color: transparent;
+            }
+
+        .product-img-wrapper {
+            height: 220px; /* Chiều cao cố định cho ảnh */
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa;
+            padding: 10px;
+        }
+
+            .product-img-wrapper img {
+                max-height: 100%;
+                max-width: 100%;
+                object-fit: contain;
+                transition: transform 0.5s ease;
+            }
+
+        .product-card:hover .product-img-wrapper img {
+            transform: scale(1.08); /* Zoom ảnh khi hover */
+        }
+
+        /* --- Style Nút Bấm --- */
+        .btn-buy-now {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: none;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+            .btn-buy-now:hover {
+                background: linear-gradient(45deg, #ff8e53, #ff6b6b);
+                color: white;
+            }
+
+        .btn-add-cart {
+            border: 2px solid #198754;
+            color: #198754;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+            .btn-add-cart:hover {
+                background-color: #198754;
+                color: white;
+            }
+
+        .product-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #333;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 2.8em; /* Giới hạn 2 dòng tên */
+        }
+    </style>
+}
+
+<div class="container py-5">
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary mb-3 mb-md-0">
+            <i class="fas fa-utensils me-2"></i>Thực Đơn Bánh
+        </h2>
+
+        <form asp-action="Index" method="get" class="filter-bar p-2 d-flex align-items-center">
+            <label class="me-2 fw-bold text-muted small text-nowrap"><i class="fas fa-filter me-1"></i>Lọc giá:</label>
+            <select name="priceRange" class="form-select form-select-sm border-0 bg-light" style="width: 200px;" onchange="this.form.submit()">
+                <option value="">Tất cả mức giá</option>
+                <option value="under_200" selected="@(ViewBag.CurrentFilter == "under_200")">Dưới 200.000đ</option>
+                <option value="200_300" selected="@(ViewBag.CurrentFilter == "200_300")">200.000đ - 300.000đ</option>
+                <option value="over_300" selected="@(ViewBag.CurrentFilter == "over_300")">Trên 300.000đ</option>
+            </select>
+        </form>
+    </div>
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="row g-4">
+            @foreach (var sp in Model)
+            {
+                var path = string.IsNullOrEmpty(sp.ANHSP) ? "~/img/Cake/hinh1.png" : sp.ANHSP;
+
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="card product-card h-100">
+
+                        <a asp-controller="ProductController1" asp-action="Detail" asp-route-id="@sp.MASP" class="product-img-wrapper">
+                            <img src="@Url.Content(path)" alt="@sp.TENSP" 
+                                 onerror="this.onerror=null; this.src='/img/Cake/default.png';" />
+                        </a>
+
+                        <div class="card-body d-flex flex-column p-3">
+                            <a asp-controller="ProductController1" asp-action="Detail" asp-route-id="@sp.MASP" class="text-decoration-none">
+                                <h5 class="product-title mb-2">@sp.TENSP</h5>
+                            </a>
+
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-danger fw-bold fs-5">@String.Format("{0:N0}đ", sp.GIA)</span>
+                                @if (sp.TRANGTHAI != "CÒN HÀNG")
+                                {
+                                    <span class="badge bg-secondary" style="font-size: 0.7rem;">Hết hàng</span>
+                                }
+                            </div>
+
+                            <div class="mt-auto d-grid gap-2">
+                                @if (sp.TRANGTHAI == "CÒN HÀNG")
+                                {
+                                    // --- NÚT MUA NGAY (Chuyển thẳng Payment) ---
+                                    @if (maKh_Session != null)
+                                    {
+                                        <form asp-controller="Cart" asp-action="BuyNow" method="post">
+                                            <input type="hidden" name="masp" value="@sp.MASP" />
+                                            <input type="hidden" name="maKh" value="@maKh_Session" />
+                                            <input type="hidden" name="qty" value="1" />
+                                            <button type="submit" class="btn btn-buy-now w-100">
+                                                MUA NGAY
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <a asp-controller="Account" asp-action="Login" class="btn btn-buy-now w-100">
+                                            MUA NGAY
+                                        </a>
+                                    }
+
+                                    // --- NÚT THÊM VÀO GIỎ ---
+                                    @if (maKh_Session != null)
+                                    {
+                                        <form asp-controller="Cart" asp-action="AddToCart" method="post">
+                                            <input type="hidden" name="masp" value="@sp.MASP" />
+                                            <input type="hidden" name="maKh" value="@maKh_Session" />
+                                            <input type="hidden" name="qty" value="1" />
+                                            <button type="submit" class="btn btn-add-cart w-100 py-1">
+                                                <i class="fas fa-cart-plus"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <a asp-controller="Account" asp-action="Login" class="btn btn-add-cart w-100 py-1">
+                                            <i class="fas fa-cart-plus"></i>
+                                        </a>
+                                    }
+                                }
+                                else
+                                {
+                                    <button class="btn btn-secondary w-100" disabled>Tạm hết hàng</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" width="100" class="mb-3 opacity-50" />
+            <h4 class="text-muted">Không tìm thấy sản phẩm nào!</h4>
+            <p>Vui lòng thử chọn mức giá khác.</p>
+            <a asp-action="Index" class="btn btn-outline-primary">Xem tất cả</a>
+        </div>
+    }
+</div>

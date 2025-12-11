@@ -1,0 +1,111 @@
+@{
+    ViewData["Title"] = "Về chúng tôi";
+    Layout = "_Layout";
+}
+
+<section class="py-5" style="margin-top: 80px;">
+    <div class="container">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <h1 class="display-4 fw-bold text-primary">
+                <i class="fas fa-birthday-cake me-3"></i>ABVN Cake Shop
+            </h1>
+            <p class="lead text-muted">Hương vị ngọt ngào, gửi trọn yêu thương</p>
+        </div>
+
+        <!-- About Content -->
+        <div class="row g-4 mb-5">
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h3 class="text-primary mb-3">
+                            <i class="fas fa-store me-2"></i>Về Cửa Hàng
+                        </h3>
+                        <p>
+                            <strong>ABVN Cake Shop</strong> là cửa hàng bánh ngọt được thành lập với sứ mệnh mang đến 
+                            những chiếc bánh thơm ngon, đẹp mắt cho mọi dịp đặc biệt trong cuộc sống của bạn.
+                        </p>
+                        <p>
+                            Chúng tôi chuyên cung cấp các loại bánh kem sinh nhật, bánh cưới, bánh tiramisu, 
+                            cupcake và nhiều loại bánh ngọt khác với chất lượng cao và giá cả hợp lý.
+                        </p>
+                        <p class="mb-0">
+                            Mỗi chiếc bánh đều được làm thủ công với nguyên liệu tươi ngon, 
+                            đảm bảo vệ sinh an toàn thực phẩm.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <h3 class="text-primary mb-3">
+                            <i class="fas fa-bullseye me-2"></i>Sứ Mệnh
+                        </h3>
+                        <ul class="list-unstyled">
+                            <li class="mb-3">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Mang đến những chiếc bánh ngon nhất cho khách hàng
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Sử dụng nguyên liệu tươi, an toàn, chất lượng cao
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Phục vụ tận tâm, giao hàng nhanh chóng
+                            </li>
+                            <li class="mb-3">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Giá cả hợp lý, phù hợp với mọi đối tượng
+                            </li>
+                            <li class="mb-0">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Luôn đổi mới, sáng tạo các loại bánh mới
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="row g-4 mb-5">
+            <div class="col-6 col-md-3">
+                <div class="card border-0 bg-primary text-white text-center p-4">
+                    <h2 class="display-4 fw-bold">5+</h2>
+                    <p class="mb-0">Năm kinh nghiệm</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 bg-success text-white text-center p-4">
+                    <h2 class="display-4 fw-bold">50+</h2>
+                    <p class="mb-0">Loại bánh</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 bg-warning text-white text-center p-4">
+                    <h2 class="display-4 fw-bold">1000+</h2>
+                    <p class="mb-0">Khách hàng</p>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 bg-danger text-white text-center p-4">
+                    <h2 class="display-4 fw-bold">100%</h2>
+                    <p class="mb-0">Hài lòng</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team -->
+        <div class="text-center">
+            <h3 class="mb-4">
+                <i class="fas fa-heart text-danger me-2"></i>
+                Cảm ơn bạn đã tin tưởng ABVN Cake Shop!
+            </h3>
+            <a asp-controller="ProductController1" asp-action="Index" class="btn btn-primary btn-lg px-5">
+                <i class="fas fa-shopping-bag me-2"></i>Xem sản phẩm
+            </a>
+        </div>
+    </div>
+</section>

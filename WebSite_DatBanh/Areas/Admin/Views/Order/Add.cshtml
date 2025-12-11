@@ -1,0 +1,56 @@
+﻿@model WebSite_DatBanh.Models.DonHang
+@{
+    ViewData["Title"] = "Thêm Đơn hàng mới";
+    Layout = "/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light border-0">
+                <h5 class="mb-0">Thêm Đơn hàng (Offline)</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Chức năng này dùng để nhập tay một đơn hàng đã chốt (vd: qua điện thoại).
+                    Bạn cần nhập Mã khách hàng và Tổng tiền chính xác. Chi tiết đơn hàng (sản phẩm) cần được thêm sau.
+                </p>
+                <hr />
+
+                <form asp-action="Add" method="post">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" asp-for="MAKH">Mã Khách Hàng (Vd: KH01)</label>
+                        <input class="form-control" asp-for="MAKH" placeholder="Nhập mã khách hàng (vd: KH01)" />
+                        <span asp-validation-for="MAKH" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" asp-for="TONGTIEN">Tổng tiền (VND)</label>
+                        <input type="number" class="form-control" asp-for="TONGTIEN" />
+                        <span asp-validation-for="TONGTIEN" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" asp-for="TRANGTHAI">Trạng thái</label>
+                        <select class="form-select" asp-for="TRANGTHAI">
+                            <option value="ĐANG XỬ LÝ">ĐANG XỬ LÝ</option>
+                            <option value="ĐANG GIAO HÀNG">ĐANG GIAO HÀNG</option>
+                            <option value="HOÀN THÀNH">HOÀN THÀNH</option>
+                            <option value="ĐÃ HỦY">ĐÃ HỦY</option>
+                        </select>
+                    </div>
+
+                    <hr />
+
+                    <button type"submit" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i> Lưu đơn hàng
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i> Hủy
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

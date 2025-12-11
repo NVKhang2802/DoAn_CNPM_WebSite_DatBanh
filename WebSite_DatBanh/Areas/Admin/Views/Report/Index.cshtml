@@ -1,0 +1,71 @@
+﻿@model IEnumerable<WebSite_DatBanh.Models.ReportViewModel>
+@{
+    ViewData["Title"] = "Báo cáo Doanh thu";
+    Layout = "/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-light border-0 py-3">
+        <h5 class="mb-0 text-primary"><i class="fas fa-chart-line me-2"></i>Báo cáo Doanh thu</h5>
+    </div>
+    <div class="card-body">
+
+        <form asp-action="Index" method="get" class="row g-3 align-items-end mb-4 border-bottom pb-4">
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Từ ngày:</label>
+                <input type="date" name="fromDate" class="form-control" value="@ViewBag.FromDate" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Đến ngày:</label>
+                <input type="date" name="toDate" class="form-control" value="@ViewBag.ToDate" />
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter me-2"></i> Xem báo cáo
+                </button>
+            </div>
+        </form>
+
+        @if (Model != null && Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover text-center align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Ngày</th>
+                            <th>Số đơn hàng (Hoàn thành)</th>
+                            <th>Doanh thu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.NGAYDAT.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    <span class="badge bg-info text-dark">@item.SoDonHang đơn</span>
+                                </td>
+                                <td class="fw-bold text-success">
+                                    @String.Format("{0:N0}đ", item.DoanhThu)
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td>TỔNG CỘNG</td>
+                            <td>@ViewBag.TotalOrders đơn</td>
+                            <td class="text-danger fs-5">@String.Format("{0:N0}đ", ViewBag.TotalRevenue)</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning text-center">
+                <i class="fas fa-exclamation-circle me-2"></i> Không có dữ liệu doanh thu trong khoảng thời gian này.
+            </div>
+        }
+    </div>
+</div>

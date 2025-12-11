@@ -1,0 +1,66 @@
+﻿@{
+    ViewData["Title"] = "Quản lý Database";
+    Layout = "/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-light border-0">
+        <h5 class="mb-0"><i class="fas fa-database me-2"></i> Quy trình Sao lưu (Backup Strategy)</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="border p-3 rounded h-100 text-center">
+                    <h6>Bước 1: Full Backup</h6>
+                    <p class="small text-muted">Sao lưu toàn bộ dữ liệu (Gốc).</p>
+                    <form asp-action="BackupFull" method="post">
+                        <button class="btn btn-primary w-100"><i class="fas fa-save"></i> Backup Full</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="border p-3 rounded h-100 text-center">
+                    <h6>Bước 2: Differential</h6>
+                    <p class="small text-muted">Sao lưu dữ liệu thay đổi sau Full.</p>
+                    <form asp-action="BackupDiff" method="post">
+                        <button class="btn btn-info w-100 text-white"><i class="fas fa-file-medical"></i> Backup Diff</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="border p-3 rounded h-100 text-center">
+                    <h6>Bước 3: Log Backup</h6>
+                    <p class="small text-muted">Sao lưu nhật ký giao dịch.</p>
+                    <form asp-action="BackupLog" method="post">
+                        <button class="btn btn-warning w-100"><i class="fas fa-history"></i> Backup Log</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-danger text-white border-0">
+        <h5 class="mb-0"><i class="fas fa-undo me-2"></i> Phục hồi thảm họa (Disaster Recovery)</h5>
+    </div>
+    <div class="card-body">
+        <p>Chức năng này sẽ tự động chạy quy trình phục hồi chuẩn: <strong>Full -> Diff -> Log</strong> để tái tạo database <code>QL_BANH_Restored</code>.</p>
+        <form asp-action="CreateRestore" method="post">
+            <button class="btn btn-danger btn-lg">
+                <i class="fas fa-radiation me-2"></i> Bắt đầu Quy trình Phục hồi
+            </button>
+        </form>
+    </div>
+</div>

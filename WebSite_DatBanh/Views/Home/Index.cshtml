@@ -1,0 +1,170 @@
+﻿@model IEnumerable<WebSite_DatBanh.Models.SanPham>
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Trang chủ";
+    Layout = "_Layout";
+    var maKh_Session = Context.Session.GetString("MAKH");
+}
+
+@section Styles {
+    <style>
+        .product-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+            .product-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            }
+
+        .product-img-wrapper {
+            height: 250px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa;
+        }
+
+            .product-img-wrapper img {
+                max-height: 100%;
+                max-width: 100%;
+                object-fit: contain;
+                transition: transform 0.5s ease;
+            }
+
+        .product-card:hover .product-img-wrapper img {
+            transform: scale(1.05);
+        }
+
+        .btn-buy-now {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: none;
+            color: white;
+            font-weight: 600;
+        }
+
+            .btn-buy-now:hover {
+                background: linear-gradient(45deg, #ff8e53, #ff6b6b);
+                color: white;
+            }
+
+        .btn-add-cart {
+            border: 2px solid #198754;
+            color: #198754;
+            font-weight: 600;
+        }
+
+            .btn-add-cart:hover {
+                background-color: #198754;
+                color: white;
+            }
+    </style>
+}
+
+<section class="slider_section mb-5">
+    <div id="customCarousel1" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <div class="container ">
+                    <div class="row">
+                        <div class="col-md-7 col-lg-6 ">
+                            <div class="detail-box">
+                                <h1 class="display-4 fw-bold text-primary">ABVN CAKE SHOP</h1>
+                                <p class="lead">
+                                    Hương vị ngọt ngào, gửi trọn yêu thương trong từng chiếc bánh.
+                                </p>
+                                <a asp-controller="ProductController1" asp-action="Index" class="btn btn-primary btn-lg rounded-pill px-4">
+                                    Xem Thực Đơn
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="product_section layout_padding bg-light py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold display-6">Sản Phẩm <span class="text-primary">Nổi Bật</span></h2>
+            <p class="text-muted">Những chiếc bánh được yêu thích nhất tại cửa hàng</p>
+        </div>
+
+        <div class="row g-4">
+            @foreach (var sp in Model)
+            {
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <div class="card product-card h-100 border-0 shadow-sm">
+
+                        <a asp-controller="ProductController1" asp-action="Detail" asp-route-id="@sp.MASP" class="product-img-wrapper">
+                            <img src="@Url.Content(sp.ANHSP)" alt="@sp.TENSP" 
+                                 onerror="this.onerror=null; this.src='/img/Cake/default.png';">
+                        </a>
+
+                        <div class="card-body text-center d-flex flex-column">
+                            <h5 class="card-title text-truncate">
+                                <a asp-controller="ProductController1" asp-action="Detail" asp-route-id="@sp.MASP" class="text-decoration-none text-dark">
+                                    @sp.TENSP
+                                </a>
+                            </h5>
+                            <p class="card-text text-danger fw-bold fs-5 mb-3">
+                                @String.Format("{0:N0}đ", sp.GIA)
+                            </p>
+
+                            <div class="mt-auto d-grid gap-2">
+                                @if (maKh_Session != null)
+                                {
+                                    <form asp-controller="Cart" asp-action="BuyNow" method="post">
+                                        <input type="hidden" name="masp" value="@sp.MASP" />
+                                        <input type="hidden" name="maKh" value="@maKh_Session" />
+                                        <input type="hidden" name="qty" value="1" />
+                                        <button type="submit" class="btn btn-buy-now w-100 py-2">
+                                            <i class="fas fa-bolt me-1"></i> MUA NGAY
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <a asp-controller="Account" asp-action="Login" class="btn btn-buy-now w-100 py-2">
+                                        <i class="fas fa-bolt me-1"></i> MUA NGAY
+                                    </a>
+                                }
+
+                                @if (maKh_Session != null)
+                                {
+                                    <form asp-controller="Cart" asp-action="AddToCart" method="post">
+                                        <input type="hidden" name="masp" value="@sp.MASP" />
+                                        <input type="hidden" name="maKh" value="@maKh_Session" />
+                                        <input type="hidden" name="qty" value="1" />
+                                        <button type="submit" class="btn btn-add-cart w-100">
+                                            <i class="fas fa-cart-plus me-1"></i> Thêm giỏ hàng
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <a asp-controller="Account" asp-action="Login" class="btn btn-add-cart w-100">
+                                        <i class="fas fa-cart-plus me-1"></i> Thêm giỏ hàng
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="text-center mt-5">
+            <a asp-controller="ProductController1" asp-action="Index" class="btn btn-outline-primary rounded-pill px-5 py-2">
+                Xem tất cả sản phẩm <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        </div>
+    </div>
+</section>

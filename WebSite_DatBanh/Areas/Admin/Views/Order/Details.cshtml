@@ -1,0 +1,127 @@
+﻿@model WebSite_DatBanh.Models.DonHang
+@{
+    ViewData["Title"] = "Chi tiết Đơn hàng";
+    Layout = "/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
+    // Lấy các trạng thái từ SQL
+    var listTrangThai = new List<string> { "ĐANG XỬ LÝ", "ĐANG GIAO HÀNG", "HOÀN THÀNH", "ĐÃ HỦY" };
+}
+
+<div class="row g-4">
+
+    <div class="col-lg-8">
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-light border-0">
+                <h5 class="mb-0">Chi tiết Đơn hàng: @Model.MADH</h5>
+            </div>
+            <div class="card-body p-0">
+                <table class="table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>Đơn giá</th>
+                            <th>Số lượng</th>
+                            <th class="text-end">Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.CT_DONHANG)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@(item.SANPHAM?.TENSP ?? "Sản phẩm lỗi")</strong>
+                                    <br />
+                                    <small class="text-muted">Mã: @item.MASP</small>
+                                </td>
+                                <td>@String.Format("{0:N0}đ", item.GIASP)</td>
+                                <td>@item.SOLUONG</td>
+                                <td class="text-end">@String.Format("{0:N0}đ", (item.GIASP * item.SOLUONG))</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">Tổng cộng:</td>
+                            <td class="text-end fw-bold h5 text-danger">
+                                @String.Format("{0:N0}đ", Model.TONGTIEN)
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light border-0">
+                <h5 class="mb-0">Thông tin Khách hàng</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.KHACHHANG != null)
+                {
+                    <p><strong>Tên:</strong> @Model.KHACHHANG.HOTEN</p>
+                    <p><strong>Email:</strong> @Model.KHACHHANG.EMAIL</p>
+                    <p><strong>SĐT:</strong> @Model.KHACHHANG.SDT</p>
+                    <p><strong>Địa chỉ:</strong> @Model.KHACHHANG.DIACHI</p>
+                }
+                else
+                {
+                    <p class="text-muted">Khách vãng lai (không có thông tin).</p>
+                }
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light border-0">
+                <h5 class="mb-0">Cập nhật Trạng thái</h5>
+            </div>
+            <div class="card-body">
+
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+                }
+
+                @if ((bool)ViewBag.CanEdit == true)
+                {
+                    <form asp-action="UpdateStatus" method="post">
+                        <input type="hidden" name="madh" value="@Model.MADH" />
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" for="trangthai">Cập nhật trạng thái:</label>
+                            <select name="trangthai" id="trangthai" class="form-select">
+                                @foreach (var status in listTrangThai)
+                                {
+                                    <option value="@status" selected="@(status == Model.TRANGTHAI)">
+                                        @status
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> Lưu thay đổi
+                            </button>
+                        </div>
+                    </form>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Trạng thái hiện tại:</label>
+                        <p class="h5">
+                            <span class="badge bg-primary">@Model.TRANGTHAI</span>
+                        </p>
+                    </div>
+                }
+
+                <hr />
+                <a asp-action="Index" class="btn btn-secondary w-100">
+                    <i class="fas fa-arrow-left me-2"></i> Quay lại danh sách
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

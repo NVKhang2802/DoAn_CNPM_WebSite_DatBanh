@@ -1,0 +1,1214 @@
+﻿CREATE DATABASE QL_BANH;
+GO
+USE QL_BANH;
+GO
+
+-- 1. BẢNG SANPHAM
+CREATE TABLE SANPHAM (
+    MASP NVARCHAR(10) NOT NULL,
+    TENSP NVARCHAR(100) NOT NULL,
+    GIA DECIMAL(18,2),
+    MOTA NVARCHAR(500),
+    ANHSP NVARCHAR(255),
+    KICHCO NVARCHAR(50),
+    MAUSAC NVARCHAR(50),
+    TRANGTHAI NVARCHAR(50),
+    CONSTRAINT PK_SANPHAM PRIMARY KEY (MASP),
+    CONSTRAINT CHK_SANPHAM_GIA CHECK (GIA > 0),
+    CONSTRAINT CHK_SANPHAM_TRANGTHAI CHECK (TRANGTHAI IN (N'CÒN HÀNG', N'HẾT HÀNG'))
+)
+
+
+-- 2. BẢNG KHACHHANG
+CREATE TABLE KHACHHANG (
+    MAKH NVARCHAR(10) NOT NULL,
+    HOTEN NVARCHAR(100),
+    TENDN NVARCHAR(50) NOT NULL,
+    MATKHAU NVARCHAR(255),
+    EMAIL NVARCHAR(100),
+    DIACHI NVARCHAR(255),
+    SDT VARCHAR(11),
+    CONSTRAINT PK_KHACHHANG PRIMARY KEY (MAKH),
+    CONSTRAINT CHK_KHACHHANG_EMAIL CHECK (EMAIL LIKE '%@%.%'),
+    CONSTRAINT CHK_KHACHHANG_SDT CHECK (SDT NOT LIKE '%[^0-9]%' AND LEN(SDT) BETWEEN 10 AND 11)
+)
+
+-- 3. BẢNG NHANVIEN
+CREATE TABLE NHANVIEN (
+    MANV NVARCHAR(10) NOT NULL,
+    HOTEN NVARCHAR(100),
+    CHUCVU NVARCHAR(50) NOT NULL,
+    NGAYVAOLAM DATE,
+    TRANGTHAI NVARCHAR(50),
+    TUOI INT,
+    ANHDD NVARCHAR(255),
+    TENDN NVARCHAR(50),
+    MATKHAU NVARCHAR(255),
+    CONSTRAINT PK_NHANVIEN PRIMARY KEY (MANV),
+    CONSTRAINT CHK_NHANVIEN_TUOI CHECK (TUOI BETWEEN 18 AND 60),
+    CONSTRAINT CHK_NHANVIEN_TRANGTHAI CHECK (TRANGTHAI IN (N'ĐANG LÀM', N'NGHỈ PHÉP', N'ĐÃ NGHỈ'))
+)
+
+-- 4. BẢNG DONHANG
+CREATE TABLE DONHANG (
+    MADH NVARCHAR(10) NOT NULL,
+    MAKH NVARCHAR(10),
+    MANV NVARCHAR(10),
+    NGAYDAT DATE DEFAULT GETDATE(),
+    TONGTIEN DECIMAL(18,2),
+    TRANGTHAI NVARCHAR(50),
+    CONSTRAINT PK_DONHANG PRIMARY KEY (MADH),
+    CONSTRAINT FK_DONHANG_KHACHHANG FOREIGN KEY (MAKH) REFERENCES KHACHHANG(MAKH),
+    CONSTRAINT FK_DONHANG_NHANVIEN FOREIGN KEY (MANV) REFERENCES NHANVIEN(MANV),
+    CONSTRAINT CHK_DONHANG_TONGTIEN CHECK (TONGTIEN >= 0),
+    CONSTRAINT CHK_DONHANG_TRANGTHAI CHECK (TRANGTHAI IN (N'ĐANG XỬ LÝ', N'HOÀN THÀNH', N'ĐANG GIAO HÀNG', N'ĐÃ HỦY'))
+)
+
+-- 5. BẢNG CT_DONHANG
+CREATE TABLE CT_DONHANG (
+    MADH NVARCHAR(10),
+    MASP NVARCHAR(10),
+    SOLUONG INT,
+    GIASP DECIMAL(18,2),
+    CONSTRAINT PK_CT_DONHANG PRIMARY KEY (MADH, MASP),
+    CONSTRAINT FK_CTDH_DONHANG FOREIGN KEY (MADH) REFERENCES DONHANG(MADH),
+    CONSTRAINT FK_CTDH_SANPHAM FOREIGN KEY (MASP) REFERENCES SANPHAM(MASP),
+    CONSTRAINT CHK_CTDH_SOLUONG CHECK (SOLUONG > 0),
+    CONSTRAINT CHK_CTDH_GIASP CHECK (GIASP > 0)
+)
+
+-- 6. BẢNG GIOHANG
+CREATE TABLE GIOHANG (
+    MAGH NVARCHAR(10) NOT NULL,
+    MAKH NVARCHAR(10),
+    NGAYTHEM DATE,
+    CONSTRAINT PK_GIOHANG PRIMARY KEY (MAGH),
+    CONSTRAINT FK_GIOHANG_KHACHHANG FOREIGN KEY (MAKH) REFERENCES KHACHHANG(MAKH),
+    CONSTRAINT CHK_GIOHANG_NGAYTHEM CHECK (NGAYTHEM <= GETDATE())
+)
+
+
+-- 7. BẢNG CT_GIOHANG
+CREATE TABLE CT_GIOHANG (
+    MAGH NVARCHAR(10),
+    MASP NVARCHAR(10),
+    SOLUONG INT,
+    CONSTRAINT PK_CT_GIOHANG PRIMARY KEY (MAGH, MASP),
+    CONSTRAINT FK_CTGH_GIOHANG FOREIGN KEY (MAGH) REFERENCES GIOHANG(MAGH),
+    CONSTRAINT FK_CTGH_SANPHAM FOREIGN KEY (MASP) REFERENCES SANPHAM(MASP),
+    CONSTRAINT CHK_CTGH_SOLUONG CHECK (SOLUONG > 0)
+)
+
+ALTER TABLE CT_GIOHANG
+ADD KICHCO NVARCHAR(50) NULL;
+GO
+
+-- 8. BẢNG THANHTOAN
+CREATE TABLE THANHTOAN (
+    MATT NVARCHAR(10) NOT NULL,
+    MADH NVARCHAR(10) NOT NULL,
+    PHUONGTHUC NVARCHAR(50) NOT NULL,
+    NGAYTT DATE DEFAULT GETDATE(),
+    SOTIEN DECIMAL(18,2) NOT NULL,
+    TRANGTHAI NVARCHAR(50) NOT NULL,
+    GHICHU NVARCHAR(255),
+    CONSTRAINT PK_THANHTOAN PRIMARY KEY (MATT),
+    CONSTRAINT FK_THANHTOAN_DONHANG FOREIGN KEY (MADH) REFERENCES DONHANG(MADH),
+    CONSTRAINT CHK_THANHTOAN_SOTIEN CHECK (SOTIEN > 0),
+    CONSTRAINT CHK_THANHTOAN_TRANGTHAI CHECK (TRANGTHAI IN (N'ĐÃ THANH TOÁN', N'CHƯA THANH TOÁN', N'HOÀN TIỀN')),
+    CONSTRAINT CHK_THANHTOAN_PHUONGTHUC CHECK (PHUONGTHUC IN (N'TIỀN MẶT', N'CHUYỂN KHOẢN', N'THẺ NGÂN HÀNG', N'VÍ ĐIỆN TỬ'))
+)
+
+SELECT * FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_NAME LIKE '%THANH%';
+
+
+-- 9. BẢNG TÀI KHOẢN KHÁCH HÀNG
+CREATE TABLE TAIKHOAN_KH (
+    MATK NVARCHAR(10) NOT NULL,
+    MAKH NVARCHAR(10) NOT NULL,
+    TENDN NVARCHAR(50) NOT NULL,
+    MATKHAU NVARCHAR(255) NOT NULL,
+    NGAYTAO DATE DEFAULT GETDATE(),
+    TRANGTHAI NVARCHAR(50) DEFAULT N'ĐANG HOẠT ĐỘNG',
+    CONSTRAINT PK_TAIKHOAN_KH PRIMARY KEY (MATK),
+    CONSTRAINT FK_TAIKHOAN_KH_KH FOREIGN KEY (MAKH) REFERENCES KHACHHANG(MAKH),
+    CONSTRAINT CHK_TAIKHOAN_KH_TRANGTHAI CHECK (TRANGTHAI IN (N'ĐANG HOẠT ĐỘNG', N'BỊ KHÓA'))
+)
+
+ALTER TABLE TAIKHOAN_KH
+ADD SoLanSai INT DEFAULT 0; 
+
+
+ALTER TABLE KHACHHANG ADD CONSTRAINT UQ_KHACHHANG_TENDN UNIQUE (TENDN);
+ALTER TABLE KHACHHANG ADD CONSTRAINT UQ_KHACHHANG_EMAIL UNIQUE (EMAIL);
+
+ALTER TABLE NHANVIEN ADD CONSTRAINT UQ_NHANVIEN_TENDN UNIQUE (TENDN);
+
+ALTER TABLE GIOHANG ADD CONSTRAINT UQ_GIOHANG_MAKH UNIQUE (MAKH);
+
+ALTER TABLE THANHTOAN ADD CONSTRAINT UQ_THANHTOAN_MADH UNIQUE (MADH);
+
+ALTER TABLE TAIKHOAN_KH ADD CONSTRAINT UQ_TAIKHOAN_KH_TENDN UNIQUE (TENDN);
+ALTER TABLE TAIKHOAN_KH ADD CONSTRAINT UQ_TAIKHOAN_KH_MAKH UNIQUE (MAKH);
+
+
+CREATE TABLE NHATKYDANGNHAP
+(
+	MA INT IDENTITY(1,1) PRIMARY KEY,
+	TENDN NVARCHAR(50),
+	THOIGIAN DATETIME,
+	KETQUA NVARCHAR(20)
+)
+GO
+
+
+------------------------------------------------
+-- San pham
+INSERT INTO SANPHAM 
+VALUES
+('SP01', N'Bánh kem socola', 200000, N'Bánh kem socola phủ kem tươi', '~/img/Cake/hinh1.png', N'NHỎ', N'NÂU', N'CÒN HÀNG'),
+('SP02', N'Bánh kem dâu', 220000, N'Bánh kem vị dâu tây', '~/img/Cake/hinh2.png', N'VỪA', N'HỒNG', N'CÒN HÀNG'),
+('SP03', N'Bánh tiramisu', 250000, N'Bánh tiramisu Ý', '~/img/Cake/hinh3.png', N'NHỎ', N'NÂU NHẠT', N'CÒN HÀNG'),
+('SP04', N'Bánh matcha', 230000, N'Bánh trà xanh Nhật Bản', '~/img/Cake/hinh4.png', N'VỪA', N'XANH LÁ', N'CÒN HÀNG'),
+('SP05', N'Bánh mousse chanh leo', 240000, N'Mousse chanh leo mát lạnh', '~/img/Cake/hinh5.png', N'LỚN', N'VÀNG', N'CÒN HÀNG'),
+('SP06', N'Bánh phô mai việt quất', 260000, N'Cheesecake việt quất', '~/img/Cake/hinh6.png', N'VỪA', N'TÍM', N'HẾT HÀNG'),
+('SP07', N'Bánh mousse xoài', 220000, N'Mousse xoài ngọt dịu', '~/img/Cake/hinh7.png', N'NHỎ', N'VÀNG NHẠT', N'CÒN HÀNG'),
+('SP08', N'Bánh gato vani', 180000, N'Gato truyền thống', '~/img/Cake/hinh8.png', N'VỪA', N'TRẮNG', N'CÒN HÀNG'),
+('SP09', N'Bánh cưới 3 tầng', 1500000, N'Bánh cưới hoa kem', '~/img/Cake/hinh9.png', N'LỚN', N'TRẮNG', N'CÒN HÀNG'),
+('SP10', N'Bánh cupcake mix', 120000, N'Hộp 6 cupcake', '~/img/Cake/hinh10.png', N'NHỎ', N'NHIỀU MÀU', N'CÒN HÀNG'),
+('SP11', N'Bánh kem socola', 200000, N'Bánh kem socola phủ kem tươi', '~/img/Cake/hinh11.png', N'NHỎ', N'NÂU', N'CÒN HÀNG'),
+('SP12', N'Bánh kem dâu', 220000, N'Bánh kem vị dâu tây', '~/img/Cake/hinh12.png', N'VỪA', N'HỒNG', N'CÒN HÀNG'),
+('SP13', N'Bánh tiramisu', 250000, N'Bánh tiramisu Ý', '~/img/Cake/hinh13.png', N'NHỎ', N'NÂU NHẠT', N'CÒN HÀNG'),
+('SP14', N'Bánh matcha', 230000, N'Bánh trà xanh Nhật Bản', '~/img/Cake/hinh14.png', N'VỪA', N'XANH LÁ', N'CÒN HÀNG'),
+('SP15', N'Bánh mousse chanh leo', 240000, N'Mousse chanh leo mát lạnh', '~/img/Cake/hinh15.png', N'LỚN', N'VÀNG', N'CÒN HÀNG'),
+('SP16', N'Bánh phô mai việt quất', 260000, N'Cheesecake việt quất', '~/img/Cake/hinh16.png', N'VỪA', N'TÍM', N'HẾT HÀNG'),
+('SP17', N'Bánh mousse xoài', 220000, N'Mousse xoài ngọt dịu', '~/img/Cake/hinh17.png', N'NHỎ', N'VÀNG NHẠT', N'CÒN HÀNG'),
+('SP18', N'Bánh gato vani', 180000, N'Gato truyền thống', '~/img/Cake/hinh18.png', N'VỪA', N'TRẮNG', N'CÒN HÀNG'),
+('SP19', N'Bánh cưới 3 tầng', 1500000, N'Bánh cưới hoa kem', '~/img/Cake/hinh19.png', N'LỚN', N'TRẮNG', N'CÒN HÀNG'),
+('SP20', N'Bánh cupcake mix', 120000, N'Hộp 6 cupcake', '~/img/Cake/hinh20.png', N'NHỎ', N'NHIỀU MÀU', N'CÒN HÀNG')
+
+
+
+SELECT MASP, ANHSP FROM SANPHAM;
+-- Khach hang
+INSERT INTO KHACHHANG 
+VALUES
+('KH01', N'Nguyễn Văn An', 'an01', '123', 'an01@gmail.com', N'Hà Nội', '0911111111'),
+('KH02', N'Trần Thị Bình', 'binh02', '123', 'binh02@gmail.com', N'Hải Phòng', '0922222222'),
+('KH03', N'Lê Văn Cường', 'cuong03', '123', 'cuong03@gmail.com', N'Đà Nẵng', '0933333333'),
+('KH04', N'Phạm Thị Dung', 'dung04', '123', 'dung04@gmail.com', N'Hồ Chí Minh', '0944444444'),
+('KH05', N'Hoàng Minh Đức', 'duc05', '123', 'duc05@gmail.com', N'Bình Dương', '0955555555'),
+('KH06', N'Đỗ Thu Hằng', 'hang06', '123', 'hang06@gmail.com', N'Cần Thơ', '0966666666'),
+('KH07', N'Ngô Văn Huy', 'huy07', '123', 'huy07@gmail.com', N'Nghệ An', '0977777777'),
+('KH08', N'Vũ Thị Hoa', 'hoa08', '123', 'hoa08@gmail.com', N'Huế', '0988888888'),
+('KH09', N'Bùi Quốc Khánh', 'khanh09', '123', 'khanh09@gmail.com', N'Nam Định', '0999999999'),
+('KH10', N'Phan Thị Lan', 'lan10', '123', 'lan10@gmail.com', N'Quảng Ninh', '0901010101')
+INSERT INTO KHACHHANG 
+VALUES
+('KH99', N'Phan Thị Hang', 'hang99', '123', 'hang99@gmail.com', N'Quảng Ninh', '0901010101',1),
+('KH100', N'Phan Tan Hoang', 'hoang100', '123', 'hg100@gmail.com', N'Quảng Ninh', '0901010101',2)
+
+select*from KHACHHANG
+
+-- Nhan vien
+INSERT INTO NHANVIEN 
+VALUES
+('NV01', N'Nguyễn Văn Quản', N'Quản lý', '2024-01-01', N'Đang làm', 35, '/img/staff/quanly.png', 'admin', '123'),
+('NV02', N'Trần Thị Thu', N'Nhân viên bán hàng', '2024-01-05', N'Đang làm', 28, '/img/staff/thu.png', 'thu02', '123'),
+('NV03', N'Lê Minh Hoàng', N'Nhân viên giao hàng', '2024-02-10', N'Đang làm', 30, '/img/staff/hoang.png', 'hoang03', '123'),
+('NV04', N'Phạm Văn Cường', N'Nhân viên giao hàng', '2024-02-15', N'Nghỉ phép', 32, '/img/staff/cuong.png', 'cuong04', '123'),
+('NV05', N'Đỗ Thị Lan', N'Nhân viên bán hàng', '2024-03-20', N'Đang làm', 25, '/img/staff/lan.png', 'lan05', '123')
+
+-- Don hang
+INSERT INTO DONHANG 
+VALUES
+('DH01', 'KH01', 'NV02', '2025-08-01', 200000, N'Đang xử lý'),
+('DH02', 'KH02', 'NV02', '2025-08-02', 220000, N'Hoàn thành'),
+('DH03', 'KH03', 'NV03', '2025-08-03', 500000, N'Đang xử lý'),
+('DH04', 'KH04', 'NV02', '2025-08-04', 1500000, N'Đang giao hàng'),
+('DH05', 'KH05', 'NV03', '2025-08-05', 240000, N'Đã hủy'),
+('DH06', 'KH06', 'NV02', '2025-08-01', 200000, N'Đang xử lý'),
+('DH07', 'KH07', 'NV02', '2025-08-02', 220000, N'Hoàn thành'),
+('DH08', 'KH08', 'NV03', '2025-08-03', 500000, N'Đang xử lý'),
+('DH09', 'KH09', 'NV02', '2025-08-04', 1500000, N'Đang giao hàng'),
+('DH10', 'KH10', 'NV03', '2025-08-05', 240000, N'Đã hủy')
+-- Chi tiet don hang
+INSERT INTO CT_DONHANG 
+VALUES
+('DH01', 'SP01', 1, 200000),
+('DH02', 'SP02', 1, 220000),
+('DH03', 'SP03', 2, 250000),
+('DH04', 'SP09', 1, 1500000),
+('DH05', 'SP05', 1, 240000),
+('DH06', 'SP06', 1, 260000),
+('DH07', 'SP08', 1, 180000),
+('DH08', 'SP04', 1, 220000),
+('DH09', 'SP10', 1, 120000),
+('DH10', 'SP07', 2, 220000)
+
+-- Gio hang
+INSERT INTO GIOHANG 
+VALUES
+('GH01', 'KH01', '2025-08-01'),
+('GH02', 'KH02', '2025-08-02'),
+('GH03', 'KH03', '2025-08-03'),
+('GH04', 'KH04', '2025-08-04'),
+('GH05', 'KH05', '2025-08-05'),
+('GH06', 'KH06', '2025-08-06'),
+('GH07', 'KH07', '2025-08-07'),
+('GH08', 'KH08', '2025-08-08'),
+('GH09', 'KH09', '2025-08-09'),
+('GH10', 'KH10', '2025-08-10')
+
+-- Chi tiet gio hang
+INSERT INTO CT_GIOHANG 
+VALUES
+('GH01', 'SP01', 1, 'M'),
+('GH02', 'SP02', 1, 'L'),
+('GH03', 'SP03', 2, 'M'),
+('GH04', 'SP04', 1, 'S'),
+('GH05', 'SP05', 1, 'L'),
+('GH06', 'SP06', 1, 'M'),
+('GH07', 'SP07', 3, 'M'),
+('GH08', 'SP08', 1, 'L'),
+('GH09', 'SP09', 1, 'S'),
+('GH10', 'SP10', 2, 'M')
+
+
+-- Tai khoan KH
+INSERT INTO TAIKHOAN_KH (MATK, MAKH, TENDN, MATKHAU, NGAYTAO, TRANGTHAI)
+VALUES
+('TK01', 'KH01', 'an01', '123', '2025-08-01', N'ĐANG HOẠT ĐỘNG'),
+('TK02', 'KH02', 'binh02', '123', '2025-08-02', N'ĐANG HOẠT ĐỘNG'),
+('TK03', 'KH03', 'cuong03', '123', '2025-08-03', N'ĐANG HOẠT ĐỘNG'),
+('TK04', 'KH04', 'dung04', '123', '2025-08-04', N'BỊ KHÓA'),
+('TK05', 'KH05', 'duc05', '1234', '2025-08-05', N'ĐANG HOẠT ĐỘNG')
+INSERT INTO TAIKHOAN_KH (MATK, MAKH, TENDN, MATKHAU, NGAYTAO, TRANGTHAI)
+VALUES
+--('TK06', 'KH06', 'hang06', '123', '2025-08-01', N'ĐANG HOẠT ĐỘNG'),
+('TK07', 'KH07', 'huy07', '123', '2025-08-02', N'ĐANG HOẠT ĐỘNG'),
+('TK08', 'KH08', 'hoa08', '123', '2025-08-03', N'ĐANG HOẠT ĐỘNG'),
+('TK09', 'KH09', 'khanh09', '123', '2025-08-04', N'BỊ KHÓA'),
+('TK10', 'KH10', 'lan10', '123', '2025-08-05', N'ĐANG HOẠT ĐỘNG')
+
+GO
+
+
+-- Kiểm tra
+SELECT * FROM TAIKHOAN_KH
+
+-------------------------------------------
+SELECT * FROM SANPHAM;
+SELECT * FROM KHACHHANG;
+SELECT * FROM NHANVIEN;
+SELECT * FROM DONHANG;
+SELECT * FROM CT_DONHANG;
+SELECT * FROM GIOHANG;
+SELECT * FROM CT_GIOHANG;
+SELECT * FROM THANHTOAN;
+SELECT * FROM TAIKHOAN_KH;
+SELECT * FROM NHATKYDANGNHAP
+
+
+--T-SQL
+--==TÌM SẢN PHẨM CÒN HÀNG VÀ CÓ GIÁ > 200000
+SELECT MASP, TENSP, GIA
+FROM SANPHAM
+WHERE TRANGTHAI = N'CÒN HÀNG' 
+AND GIA > 200000
+--==XUẤT TOP 3 KHÁCH MUA NHIỀU NHẤT
+SELECT TOP 3 KH.HOTEN, COUNT(DH.MADH) AS SO_DON
+FROM KHACHHANG KH, DONHANG DH 
+WHERE KH.MAKH = DH.MAKH
+GROUP BY KH.HOTEN
+ORDER BY SO_DON DESC
+--==XEM DOANH THU CỦA NHÂN VIÊN
+SELECT NV.HOTEN, SUM(DH.TONGTIEN) AS DOANHTHU
+FROM NHANVIEN NV, DONHANG DH 
+WHERE NV.MANV = DH.MANV
+GROUP BY NV.HOTEN
+ORDER BY DOANHTHU DESC
+--==TÍNH TỔNG TIỀN TRUNG BÌNH MỖI ĐƠN
+SELECT AVG(TONGTIEN) AS TONGTB 
+FROM DONHANG
+--==XUẤT NHỮNG KHÁCH CHƯA CÓ HÓA ĐƠN NÀO
+SELECT * 
+FROM KHACHHANG 
+WHERE MAKH NOT IN (SELECT MAKH FROM DONHANG)
+--==TỔNG HỢP DOANH THU THEO NHÂN VIÊN
+CREATE VIEW V_DOANHTHU_NV
+AS
+SELECT N.MANV, N.HOTEN, SUM(D.TONGTIEN) AS DOANHTHU
+FROM DONHANG D ,NHANVIEN N 
+WHERE D.MANV = N.MANV 
+AND D.TRANGTHAI = N'HOÀN THÀNH'
+GROUP BY N.MANV, N.HOTEN
+GO
+
+-- Kiểm tra
+SELECT * FROM V_DOANHTHU_NV
+
+
+---===TRIGGER===---
+--== Trigger 1: CẬP NHẬT TỔNG TIỀN SAU KHI THÊM CHI TIẾT HÓA ĐƠN ==--
+CREATE TRIGGER TRG_CAPNHAT_TONGTIEN
+ON CT_DONHANG
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    DECLARE @MADH NVARCHAR(10)
+    SELECT @MADH = MADH FROM inserted
+    EXEC SP_TINH_TONGTIEN_DONHANG @MADH
+END
+GO
+--Kiểm tra
+SELECT MADH, TONGTIEN 
+FROM DONHANG 
+WHERE MADH = 'DH01'
+
+INSERT INTO CT_DONHANG (MADH, MASP, SOLUONG, GIASP)
+VALUES ('DH01', 'SP03', 1, 220000)
+
+UPDATE CT_DONHANG
+SET SOLUONG = 5
+WHERE MADH = 'DH01' AND MASP = 'SP03'
+
+-- Trigger 5: Tự động viết hoa Tên đăng nhập khi tạo tài khoản mới
+CREATE TRIGGER TRG_VIETHOA_TENDN
+ON TAIKHOAN_KH
+FOR INSERT
+AS
+BEGIN
+    UPDATE TAIKHOAN_KH
+    SET TENDN = UPPER(i.TENDN)
+    FROM TAIKHOAN_KH t
+    JOIN inserted i ON t.MATK = i.MATK
+END
+GO
+
+INSERT INTO TAIKHOAN_KH (MATK, MAKH, TENDN, MATKHAU, NGAYTAO, TRANGTHAI)
+VALUES
+('TK011', 'KH99', 'hang99', '123', '2025-08-01', N'ĐANG HOẠT ĐỘNG')
+
+INSERT INTO TAIKHOAN_KH (MATK, MAKH, TENDN, MATKHAU, NGAYTAO, TRANGTHAI)
+VALUES
+('TK012', 'KH100', 'hOang100', '123', '2025-08-01', N'ĐANG HOẠT ĐỘNG')
+
+SELECT * FROM TAIKHOAN_KH
+
+-- Trigger 2: Không cho phép xóa khách hàng nếu khách đó đã có đơn hàng
+CREATE TRIGGER TRG_CHAN_XOA_KHACHHANG
+ON KHACHHANG
+FOR DELETE
+AS
+BEGIN
+    IF EXISTS (SELECT 1 FROM deleted d JOIN DONHANG dh ON d.MAKH = dh.MAKH)
+    BEGIN
+        PRINT N'Không thể xóa khách hàng này vì họ đã có lịch sử mua hàng!'
+        ROLLBACK TRANSACTION
+    END
+END
+GO
+
+DELETE FROM KHACHHANG 
+WHERE MAKH = 'KH01'
+
+
+INSERT INTO KHACHHANG (MAKH, HOTEN, TENDN, MATKHAU)
+VALUES ('KH_XOA', N'Khách Test Xóa', 'testxoa', '123')
+
+DELETE FROM KHACHHANG 
+WHERE MAKH = 'KH_XOA'
+
+-- Trigger 3: Tự động cập nhật ngày thanh toán là ngày hiện tại nếu người dùng để trống
+CREATE TRIGGER TRG_DEFAULT_NGAYTHANHTOAN
+ON THANHTOAN
+FOR INSERT
+AS
+BEGIN
+    UPDATE THANHTOAN
+    SET NGAYTT = GETDATE()
+    FROM THANHTOAN t
+    JOIN inserted i ON t.MATT = i.MATT
+    WHERE i.NGAYTT IS NULL
+END
+GO
+
+INSERT INTO THANHTOAN(MATT,MADH,PHUONGTHUC,SOTIEN,TRANGTHAI)
+VALUES
+('TT_TEST2','DH05',N'CHUYỂN KHOẢN',1000000,N'CHƯA THANH TOÁN')
+
+SELECT*FROM THANHTOAN
+
+-- Trigger 4: Chặn việc giảm giá sản phẩm xuống dưới 0
+CREATE TRIGGER TRG_KIEMTRA_GIA_SANPHAM
+ON SANPHAM
+FOR UPDATE
+AS
+BEGIN
+    IF EXISTS (SELECT 1 FROM inserted WHERE GIA < 0)
+    BEGIN
+        PRINT N'Giá sản phẩm không được âm!'
+        ROLLBACK TRANSACTION
+    END
+END
+GO
+
+SELECT TENSP, GIA
+FROM SANPHAM
+WHERE MASP = 'SP01'
+
+UPDATE SANPHAM
+SET GIA = -10
+WHERE MASP = 'SP01'
+
+
+
+	-- Trigger 6: Tự động cập nhập giá cho đơn hàng khi thay đổi giá sản phẩm
+
+	CREATE TRIGGER TRG_UPDATE_GIA_KHI_SUA_SP
+	ON SANPHAM
+	AFTER UPDATE
+	AS
+	BEGIN
+		IF UPDATE(GIA)
+		BEGIN
+			SET NOCOUNT ON
+
+			-- Cập nhật giá mới
+			UPDATE CT
+			SET CT.GIASP = I.GIA
+			FROM CT_DONHANG CT
+			JOIN DONHANG DH ON CT.MADH = DH.MADH
+			JOIN inserted I ON CT.MASP = I.MASP
+			WHERE DH.TRANGTHAI = N'ĐANG XỬ LÝ';
+
+			-- Tính lại tổng tiền
+			UPDATE DH
+			SET TONGTIEN = (
+				SELECT SUM(SUB.SOLUONG * SUB.GIASP)
+				FROM CT_DONHANG SUB
+				WHERE SUB.MADH = DH.MADH
+			)
+			FROM DONHANG DH
+			WHERE DH.TRANGTHAI = N'ĐANG XỬ LÝ'
+			  AND EXISTS 
+			  (
+				  SELECT 1 
+				  FROM CT_DONHANG CT 
+				  JOIN inserted I ON CT.MASP = I.MASP
+				  WHERE CT.MADH = DH.MADH
+			  )
+          
+			PRINT N'Đã tự động cập nhật giá và tổng tiền cho các đơn hàng ĐANG XỬ LÝ.';
+		END
+	END
+	GO
+
+UPDATE DONHANG 
+SET TRANGTHAI = N'ĐANG XỬ LÝ' 
+WHERE MADH = 'DH01'
+
+SELECT * FROM SANPHAM WHERE MASP = 'SP01'
+
+SELECT D.MADH, D.TRANGTHAI, CT.MASP, CT.SOLUONG, CT.GIASP AS Gia_Ban_Cu, D.TONGTIEN AS Tong_Tien_Cu
+FROM DONHANG D
+JOIN CT_DONHANG CT ON D.MADH = CT.MADH
+WHERE D.MADH = 'DH01' AND CT.MASP = 'SP01'
+
+UPDATE SANPHAM 
+SET GIA = 300000 
+WHERE MASP = 'SP01'
+
+--PROCEDURE
+--==THÊM SẢN PHẨM MỚI
+CREATE PROC SP_THEM_SANPHAM
+    @MASP NVARCHAR(10),
+    @TENSP NVARCHAR(100),
+    @GIA DECIMAL(18,2),
+    @MOTA NVARCHAR(500),
+    @ANHSP NVARCHAR(255),
+    @KICHCO NVARCHAR(50),
+    @MAUSAC NVARCHAR(50),
+    @TRANGTHAI NVARCHAR(50)
+AS
+BEGIN
+    IF EXISTS (SELECT 1 FROM SANPHAM WHERE MASP = @MASP)
+        PRINT N'Mã sản phẩm đã tồn tại!'
+    ELSE
+    BEGIN
+        INSERT INTO SANPHAM VALUES (@MASP, @TENSP, @GIA, @MOTA, @ANHSP, @KICHCO, @MAUSAC, @TRANGTHAI)
+        PRINT N'Thêm sản phẩm thành công!'
+    END
+END
+GO
+
+-- Kiểm tra
+EXEC SP_THEM_SANPHAM 'SP101', N'Bánh TEST', 230000, N'Bánh kem caramen ngọt nhẹ', '/img/cake/caramel.png', N'NHỎ', N'NÂU', N'CÒN HÀNG'
+SELECT * FROM SANPHAM WHERE MASP = 'SP101'
+
+--==TÌM KHÁCH HÀNG THEO SỐ ĐIỆN THOẠI
+CREATE PROC SP_TIM_KHACHHANG_SDT
+    @SDT VARCHAR(11)
+AS
+BEGIN
+    SELECT * FROM KHACHHANG WHERE SDT = @SDT
+END
+GO
+
+-- Kiểm tra
+EXEC SP_TIM_KHACHHANG_SDT '0911111111'
+--==CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG
+CREATE PROC SP_CAPNHAT_TRANGTHAI_DONHANG
+    @MADH NVARCHAR(10),
+    @TRANGTHAI NVARCHAR(50)
+AS
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM DONHANG WHERE MADH = @MADH)
+        PRINT N'Không tồn tại đơn hàng này!'
+    ELSE
+    BEGIN
+        UPDATE DONHANG SET TRANGTHAI = @TRANGTHAI WHERE MADH = @MADH
+        PRINT N'Cập nhật trạng thái đơn hàng thành công!'
+    END
+END
+GO
+
+-- Kiểm tra
+EXEC SP_CAPNHAT_TRANGTHAI_DONHANG 'DH01', N'HOÀN THÀNH'
+SELECT MADH, TRANGTHAI FROM DONHANG WHERE MADH = 'DH01'
+--==TÍNH TỔNG TIỀN ĐƠN HÀNG
+CREATE PROC SP_TINH_TONGTIEN_DONHANG
+    @MADH NVARCHAR(10)
+AS
+BEGIN
+    DECLARE @TONG DECIMAL(18,2)
+    SELECT @TONG = SUM(SOLUONG * GIASP) FROM CT_DONHANG WHERE MADH = @MADH
+    UPDATE DONHANG SET TONGTIEN = @TONG WHERE MADH = @MADH
+    PRINT N'Đã cập nhật tổng tiền cho đơn hàng ' + @MADH
+END
+GO
+
+-- Kiểm tra
+EXEC SP_TINH_TONGTIEN_DONHANG 'DH03'
+SELECT MADH, TONGTIEN FROM DONHANG WHERE MADH = 'DH03'
+--==THÊM GIAO DỊCH THANH TOÁN
+CREATE PROC SP_THEM_THANHTOAN
+    @MATT NVARCHAR(10),
+    @MADH NVARCHAR(10),
+    @PHUONGTHUC NVARCHAR(50),
+    @SOTIEN DECIMAL(18,2),
+    @TRANGTHAI NVARCHAR(50),
+    @GHICHU NVARCHAR(255)
+AS
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM DONHANG WHERE MADH = @MADH)
+        PRINT N'Không tồn tại đơn hàng này!'
+    ELSE
+    BEGIN
+        INSERT INTO THANHTOAN VALUES (@MATT, @MADH, @PHUONGTHUC, GETDATE(), @SOTIEN, @TRANGTHAI, @GHICHU)
+        PRINT N'Thêm thanh toán thành công!'
+    END
+END
+GO
+
+-- Kiểm tra
+EXEC SP_THEM_THANHTOAN 'TT01', 'DH01', N'TIỀN MẶT', 200000, N'ĐÃ THANH TOÁN', N'Khách trả trực tiếp'
+SELECT * FROM THANHTOAN
+
+--Thêm tài khoản mới cho khách hàng
+CREATE PROC SP_THEM_TAIKHOAN
+    @MATK NVARCHAR(10),
+    @MAKH NVARCHAR(10),
+    @TENDN NVARCHAR(50),
+    @MATKHAU NVARCHAR(255)
+AS
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM KHACHHANG WHERE MAKH = @MAKH)
+        PRINT N' Không tồn tại khách hàng này!'
+    ELSE IF EXISTS (SELECT 1 FROM TAIKHOAN_KH WHERE TENDN = @TENDN)
+        PRINT N'Tên đăng nhập đã tồn tại!'
+    ELSE
+    BEGIN
+        INSERT INTO TAIKHOAN_KH (MATK, MAKH, TENDN, MATKHAU, NGAYTAO, TRANGTHAI)
+        VALUES (@MATK, @MAKH, @TENDN, @MATKHAU, GETDATE(), N'ĐANG HOẠT ĐỘNG')
+        PRINT N' Thêm tài khoản thành công!'
+    END
+END
+GO
+
+-- Kiểm tra
+EXEC SP_THEM_TAIKHOAN 'TK06', 'KH06', 'hang06', '123456'
+SELECT * FROM TAIKHOAN_KH WHERE MATK = 'TK06'
+
+--Khóa tài khoản khách hàng
+CREATE PROC SP_KHOA_TAIKHOAN
+    @MATK NVARCHAR(10)
+AS
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM TAIKHOAN_KH WHERE MATK = @MATK)
+        PRINT N'Không tìm thấy tài khoản!'
+    ELSE
+    BEGIN
+        UPDATE TAIKHOAN_KH
+        SET TRANGTHAI = N'BỊ KHÓA'
+        WHERE MATK = @MATK
+        PRINT N'Đã khóa tài khoản thành công!'
+    END
+END
+GO
+
+-- Kiểm tra
+EXEC SP_KHOA_TAIKHOAN 'TK03'
+SELECT MATK, TRANGTHAI FROM TAIKHOAN_KH WHERE MATK = 'TK03'
+
+-- Xóa nếu đã tồn tại để tạo lại cho chắc
+IF OBJECT_ID('SP_BAOCAO_DOANHTHU', 'P') IS NOT NULL
+    DROP PROC SP_BAOCAO_DOANHTHU
+GO
+
+-- BÁO CÁO DOANH THU 
+CREATE PROC SP_BAOCAO_DOANHTHU
+    @TuNgay DATE,
+    @DenNgay DATE
+AS
+BEGIN
+    SELECT NGAYDAT, COUNT(MADH) as SoDonHang, SUM(TONGTIEN) as DoanhThu
+    FROM DONHANG
+    WHERE TRANGTHAI = N'HOÀN THÀNH'
+    AND NGAYDAT BETWEEN @TuNgay AND @DenNgay
+    GROUP BY NGAYDAT
+    ORDER BY NGAYDAT DESC
+END
+
+EXEC SP_BAOCAO_DOANHTHU '2025-10-30', '2025-11-29'
+
+
+--FUNCTION
+--==ĐẾM SỐ LƯỢNG SẢN PHẨM CÒN HÀNG
+CREATE FUNCTION FN_DEM_SP_CONHANG()
+RETURNS INT
+AS
+BEGIN
+    DECLARE @COUNT INT
+    SELECT @COUNT = COUNT(*) FROM SANPHAM WHERE TRANGTHAI = N'CÒN HÀNG'
+    RETURN @COUNT
+END
+GO
+
+-- Kiểm tra
+SELECT dbo.FN_DEM_SP_CONHANG() AS SL_CONHANG
+--==TÍNH TỔNG TIỀN CỦA 1 ĐƠN HÀNG
+CREATE FUNCTION FN_TONGTIEN_DONHANG(@MADH NVARCHAR(10))
+RETURNS DECIMAL(18,2)
+AS
+BEGIN
+    DECLARE @TONG DECIMAL(18,2)
+    SELECT @TONG = SUM(SOLUONG * GIASP)
+    FROM CT_DONHANG
+    WHERE MADH = @MADH
+    RETURN @TONG
+END
+GO
+
+-- Kiểm tra
+SELECT dbo.FN_TONGTIEN_DONHANG('DH04') AS TONGTIEN
+--==ĐẾM SỐ NHÂN VIÊN ĐANG LÀM VIỆC
+CREATE FUNCTION FN_DEM_NV_DANGLAM()
+RETURNS INT
+AS
+BEGIN
+    DECLARE @COUNT INT
+    SELECT @COUNT = COUNT(*) FROM NHANVIEN WHERE TRANGTHAI = N'ĐANG LÀM'
+    RETURN @COUNT
+END
+GO
+
+-- Kiểm tra
+SELECT dbo.FN_DEM_NV_DANGLAM() AS NV_DANG_LAM
+
+--Đếm số tài khoản đang hoạt động
+CREATE FUNCTION FUNC_DEM_TK_DANGHOATDONG()
+RETURNS INT
+AS
+BEGIN
+    DECLARE @SL INT
+    SELECT @SL = COUNT(*) FROM TAIKHOAN_KH WHERE TRANGTHAI = N'ĐANG HOẠT ĐỘNG'
+    RETURN @SL
+END
+GO
+
+-- Kiểm tra
+SELECT dbo.FUNC_DEM_TK_DANGHOATDONG() AS SL_TK_DANGHOATDONG
+
+--Lấy ngày tạo tài khoản của 1 khách hàng
+CREATE FUNCTION FUNC_NGAYTAO_TAIKHOAN(@MAKH NVARCHAR(10))
+RETURNS DATE
+AS
+BEGIN
+    DECLARE @NGAY DATE
+    SELECT @NGAY = NGAYTAO FROM TAIKHOAN_KH WHERE MAKH = @MAKH
+    RETURN @NGAY
+END
+GO
+
+-- Kiểm tra
+SELECT dbo.FUNC_NGAYTAO_TAIKHOAN('KH02') AS NGAY_TAO
+
+-- TÍNH TỔNG DOANH THU THEO NĂM
+CREATE FUNCTION FN_DOANHTHU_THEO_NAM(@NAM INT)
+RETURNS DECIMAL(18,2)
+AS
+BEGIN
+    DECLARE @TONG DECIMAL(18,2)
+    SELECT @TONG = SUM(TONGTIEN)
+    FROM DONHANG
+    WHERE YEAR(NGAYDAT) = @NAM AND TRANGTHAI = N'HOÀN THÀNH'
+    RETURN ISNULL(@TONG, 0)
+END
+GO
+
+SELECT dbo.FN_DOANHTHU_THEO_NAM(2025) AS N'TỔNG DOANH THU TRONG NĂM'
+
+-- ĐẾM SỐ LƯỢNG ĐƠN HÀNG CỦA 1 KHÁCH HÀNG
+CREATE FUNCTION FN_DEM_DONHANG_CUA_KHACH(@MAKH NVARCHAR(10))
+RETURNS INT
+AS
+BEGIN
+    DECLARE @COUNT INT
+    SELECT @COUNT = COUNT(*)
+    FROM DONHANG
+    WHERE MAKH = @MAKH
+    RETURN @COUNT
+END
+GO
+
+SELECT dbo.FN_DEM_DONHANG_CUA_KHACH('KH01') AS N'SỐ LƯỢNG ĐƠN'
+
+
+
+--CURSOR
+--==TÌM CÁC SẢN PHẨM CÒN HÀNG
+DECLARE @MASP NVARCHAR(10), @TENSP NVARCHAR(100)
+DECLARE CUR_SANPHAM CURSOR FOR
+SELECT MASP, TENSP FROM SANPHAM WHERE TRANGTHAI = N'CÒN HÀNG'
+
+OPEN CUR_SANPHAM
+FETCH NEXT FROM CUR_SANPHAM INTO @MASP, @TENSP
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    PRINT N'SẢN PHẨM: ' + @MASP + N' - ' + @TENSP
+    FETCH NEXT FROM CUR_SANPHAM INTO @MASP, @TENSP
+END
+CLOSE CUR_SANPHAM
+DEALLOCATE CUR_SANPHAM
+--==TÌM CÁC ĐƠN HÀNG CHƯA THANH TOÁN
+DECLARE @MADH NVARCHAR(10)
+DECLARE CUR_DONHANG CURSOR FOR
+SELECT DISTINCT D.MADH
+FROM DONHANG D
+WHERE NOT EXISTS (SELECT 1 FROM THANHTOAN T WHERE T.MADH = D.MADH AND T.TRANGTHAI = N'ĐÃ THANH TOÁN')
+
+OPEN CUR_DONHANG
+FETCH NEXT FROM CUR_DONHANG INTO @MADH
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    PRINT N'Đơn hàng chưa thanh toán: ' + @MADH
+    FETCH NEXT FROM CUR_DONHANG INTO @MADH
+END
+CLOSE CUR_DONHANG
+DEALLOCATE CUR_DONHANG
+
+--Duyệt danh sách tài khoản bị khóa
+DECLARE @MATK NVARCHAR(10), @TENDN NVARCHAR(50)
+DECLARE CUR_TK_KHOA CURSOR FOR
+SELECT MATK, TENDN FROM TAIKHOAN_KH WHERE TRANGTHAI = N'BỊ KHÓA'
+
+OPEN CUR_TK_KHOA
+FETCH NEXT FROM CUR_TK_KHOA INTO @MATK, @TENDN
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    PRINT N'Tài khoản bị khóa: ' + @MATK + N' (' + @TENDN + N')'
+    FETCH NEXT FROM CUR_TK_KHOA INTO @MATK, @TENDN
+END
+CLOSE CUR_TK_KHOA
+DEALLOCATE CUR_TK_KHOA
+
+EXEC sp_KiemTraDangNhap 'hang99', 'sai_mat_khau'
+
+UPDATE TAIKHOAN_KH
+SET TRANGTHAI = N'ĐANG HOẠT ĐỘNG'
+WHERE TENDN = 'hang99'
+
+--Cập nhật số lần đặt hàng cho khách hàng
+ALTER TABLE KHACHHANG 
+ADD SOLANDATHANG INT DEFAULT 0
+
+CREATE PROC PROC_CAPNHAT_SOLANDATHANG
+AS
+BEGIN
+    DECLARE @MAKH NVARCHAR(10), @SOLAN INT
+    DECLARE CUR_KH CURSOR FOR
+    SELECT MAKH FROM KHACHHANG
+
+    OPEN CUR_KH
+    FETCH NEXT FROM CUR_KH INTO @MAKH
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        SELECT @SOLAN = COUNT(*) 
+        FROM DONHANG 
+        WHERE MAKH = @MAKH AND TRANGTHAI = N'HOÀN THÀNH'
+
+        UPDATE KHACHHANG SET SOLANDATHANG = ISNULL(@SOLAN, 0) WHERE MAKH = @MAKH
+        PRINT N' Cập nhật cho KH: ' + @MAKH + N' - ' + CAST(@SOLAN AS NVARCHAR(10)) + N' đơn hoàn thành'
+        
+        FETCH NEXT FROM CUR_KH INTO @MAKH
+    END
+
+    CLOSE CUR_KH
+    DEALLOCATE CUR_KH
+END
+GO
+
+-- Kiểm tra
+EXEC PROC_CAPNHAT_SOLANDATHANG
+SELECT MAKH, HOTEN, SOLANDATHANG FROM KHACHHANG
+
+-- DUYỆT QUA CÁC SẢN PHẨM HẾT HÀNG ĐỂ IN CẢNH BÁO NHẬP KHO
+DECLARE @MASP_HET NVARCHAR(10), @TENSP_HET NVARCHAR(100)
+DECLARE CUR_SP_HETHANG CURSOR FOR
+SELECT MASP, TENSP FROM SANPHAM WHERE TRANGTHAI = N'HẾT HÀNG'
+
+OPEN CUR_SP_HETHANG
+FETCH NEXT FROM CUR_SP_HETHANG INTO @MASP_HET, @TENSP_HET
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    PRINT N'CẢNH BÁO NHẬP KHO: Sản phẩm ' + @TENSP_HET + N' (' + @MASP_HET + N') đã hết hàng!'
+    FETCH NEXT FROM CUR_SP_HETHANG INTO @MASP_HET, @TENSP_HET
+END
+CLOSE CUR_SP_HETHANG
+DEALLOCATE CUR_SP_HETHANG
+GO
+
+-- DUYỆT VÀ TĂNG 10% GIÁ CHO TẤT CẢ CÁC BÁNH CÓ GIÁ DƯỚI 50000
+DECLARE @MASP_RE NVARCHAR(10), @GIA_CU DECIMAL(18,2)
+DECLARE CUR_TANGGIA CURSOR FOR
+SELECT MASP, GIA FROM SANPHAM WHERE GIA < 50000
+
+OPEN CUR_TANGGIA
+FETCH NEXT FROM CUR_TANGGIA INTO @MASP_RE, @GIA_CU
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    PRINT N'Sản phẩm ' + @MASP_RE + N' giá cũ: ' + CAST(@GIA_CU AS NVARCHAR) + N' -> Giá mới dự kiến: ' + CAST(@GIA_CU * 1.1 AS NVARCHAR)
+    FETCH NEXT FROM CUR_TANGGIA INTO @MASP_RE, @GIA_CU
+END
+CLOSE CUR_TANGGIA
+DEALLOCATE CUR_TANGGIA
+GO
+
+
+--backup--
+ALTER DATABASE QL_BANH
+SET RECOVERY FULL;
+GO
+
+-- ============================================================
+-- THỜI ĐIỂM T1: FULL BACKUP (Khởi điểm)
+-- ============================================================
+-- Giả sử lúc này dữ liệu đang ổn định.
+-- Ta thực hiện Full Backup.
+BACKUP DATABASE QL_BANH
+TO DISK = 'E:\HQT_CSDL\DB_QLBANH\QL_BANH_T1_FULL.bak'
+WITH INIT, DESCRIPTION = 'Ban sao luu Full tai T1';
+PRINT N'Đã xong T1: Full Backup';
+GO
+
+-- ============================================================
+-- THỜI ĐIỂM T2: CÓ DỮ LIỆU MỚI -> DIFFERENTIAL BACKUP
+-- ============================================================
+-- Sinh viên thao tác: Thêm một khách hàng mới (Ví dụ: Khách hàng A)
+INSERT INTO KHACHHANG (MAKH, HOTEN, TENDN, MATKHAU, EMAIL)
+VALUES ('KH_T2', N'Nguyễn Văn T2 (Diff)', 'userT2', '123', 't2@gmail.com');
+
+-- Thực hiện Differential Backup (Chỉ lưu sự thay đổi từ T1 đến T2)
+BACKUP DATABASE QL_BANH
+TO DISK = 'E:\HQT_CSDL\DB_QLBANH\QL_BANH_T2_DIFF.bak'
+WITH INIT, DIFFERENTIAL, DESCRIPTION = 'Ban sao luu Diff tai T2';
+PRINT N'Đã xong T2: Thêm KH_T2 và Backup Diff';
+GO
+
+-- ============================================================
+-- THỜI ĐIỂM T3: CÓ DỮ LIỆU MỚI TIẾP -> LOG BACKUP
+-- ============================================================
+-- Sinh viên thao tác: Thêm tiếp khách hàng B
+INSERT INTO KHACHHANG (MAKH, HOTEN, TENDN, MATKHAU, EMAIL)
+VALUES ('KH_T3', N'Trần Thị T3 (Log)', 'userT3', '123', 't3@gmail.com');
+
+-- Thực hiện Transaction Log Backup (Lưu nhật ký từ T2 đến T3)
+BACKUP LOG QL_BANH
+TO DISK = 'E:\HQT_CSDL\DB_QLBANH\QL_BANH_T3_LOG.trn'
+WITH INIT, DESCRIPTION = 'Ban sao luu Log tai T3';
+PRINT N'Đã xong T3: Thêm KH_T3 và Backup Log';
+GO
+
+DELETE FROM KHACHHANG 
+WHERE MAKH IN ('KH_T2', 'KH_T3')
+
+SELECT*FROM KHACHHANG
+-- ============================================================
+-- THỜI ĐIỂM T4: THẢM HỌA XẢY RA
+-- ============================================================
+USE master;
+GO
+
+-- Giả lập: Hacker hoặc nhân viên xóa nhầm toàn bộ Database
+-- Lưu ý: Đóng hết các tab khác đang kết nối vào QL_BANH trước khi chạy lệnh này
+DROP DATABASE QL_BANH;
+PRINT N'THẢM HỌA: Database QL_BANH đã bị xóa sạch!';
+GO
+
+-- ============================================================
+-- KHẮC PHỤC SỰ CỐ: PHỤC HỒI DỮ LIỆU VỀ THỜI ĐIỂM T3
+-- ============================================================
+
+-- BƯỚC 1: Nạp bản FULL T1 (Chưa cho phép sử dụng -> NORECOVERY)
+RESTORE DATABASE QL_BANH
+FROM DISK = 'E:\HQT_CSDL\DB_QLBANH\QL_BANH_T1_FULL.bak'
+WITH NORECOVERY, REPLACE;
+PRINT N'Đã nạp xong bản Full T1 (Đang chờ...)';
+GO
+
+-- BƯỚC 2: Nạp bản DIFF T2 (Vẫn chưa cho sử dụng -> NORECOVERY)
+-- Nó sẽ cập nhật dữ liệu từ T1 lên T2 (có khách hàng KH_T2)
+RESTORE DATABASE QL_BANH
+FROM DISK = 'E:\HQT_CSDL\DB_QLBANH\QL_BANH_T2_DIFF.bak'
+WITH NORECOVERY;
+PRINT N'Đã nạp xong bản Diff T2 (Đang chờ...)';
+GO
+
+-- BƯỚC 3: Nạp bản LOG T3 (Bản cuối cùng -> RECOVERY)
+-- Nó sẽ cập nhật nốt dữ liệu từ T2 lên T3 (có khách hàng KH_T3)
+RESTORE LOG QL_BANH
+FROM DISK = 'E:\HQT_CSDL\DB_QLBANH\QL_BANH_T3_LOG.trn'
+WITH RECOVERY;
+PRINT N'Đã nạp xong Log T3. Database đã sẵn sàng!';
+GO
+
+---KIỂM TRA XEM ĐÃ RESTORE ĐƯỢC DATABASE CHƯA
+USE QL_BANH
+GO
+SELECT * FROM KHACHHANG WHERE MAKH IN ('KH_T2', 'KH_T3');
+
+
+--LOGIN ACCOUNT--
+sp_addlogin'an01','123'
+sp_addlogin'binh02','123'
+sp_addlogin'cuong03','123'
+sp_addlogin'dung04','123'
+sp_addlogin'duc05','123'
+sp_addlogin'hang06','123'
+sp_addlogin'huy07','123'
+sp_addlogin'hoa08','123'
+sp_addlogin'khanh09','123'
+sp_addlogin'lan10','123'
+--LOGIN ACCOUNT NHAN VIEN--
+--QTV--
+sp_addlogin'admin','123'
+--Nhân viên trưởng(xử lý công việc tại kho với quản lý các nhân viên còn lại)
+sp_addlogin'thu02','123'
+--Nhân viên bán bánh(xử lý công việc tại kho)--
+sp_addlogin'hoang03','123'
+--Nhân viên chăm sóc khách hàng--
+sp_addlogin'cuong04','123'
+--Nhân viên giao hàng--
+sp_addlogin'lan05','123'
+--del login--
+sp_droplogin 'an01'
+sp_droplogin 'binh02'
+sp_droplogin 'dung04'
+sp_droplogin 'thu02'
+sp_droplogin 'hoang03'
+--user acc--
+sp_adduser'an01','user1'
+sp_adduser'binh02','user2'
+sp_adduser'cuong03','user3'
+sp_adduser'dung04','user4'
+sp_adduser'lan10','user5'
+sp_adduser'duc05','user6'
+sp_adduser'hang06','user7'
+sp_adduser'huy07','user8'
+sp_adduser'hoa08','user9'
+sp_adduser'khanh09','user10'
+sp_adduser'admin','user11'
+sp_adduser'thu02','user12'
+sp_adduser'hoang03','user13'
+sp_adduser'cuong04','user14'
+sp_adduser'lan05','user15'
+--drop user--
+sp_dropuser'user1'
+sp_dropuser'user2'
+sp_dropuser'user3'
+sp_dropuser'user4'
+-- Quyền cho nhân viên bán hàng--
+GRANT SELECT, INSERT, UPDATE ON KHACHHANG TO user12, user13;
+GRANT SELECT, INSERT, UPDATE ON DONHANG TO user12, user13;
+GRANT SELECT, INSERT, UPDATE ON CT_DONHANG TO user12, user13;
+GRANT SELECT, INSERT, UPDATE ON GIOHANG TO user12, user13;
+GRANT SELECT, INSERT, UPDATE ON CT_GIOHANG TO user12, user13;
+GRANT SELECT, INSERT, UPDATE ON THANHTOAN TO user12, user13;
+GRANT SELECT ON SANPHAM TO user12, user13;
+--Quyền cho nhân viên giao hàng--
+GRANT SELECT, UPDATE ON DONHANG(MADH,NGAYDAT,TONGTIEN,TRANGTHAI) TO user15;
+GRANT SELECT, UPDATE ON CT_DONHANG TO user15;
+GRANT SELECT, UPDATE ON THANHTOAN TO user15;
+GRANT SELECT ON KHACHHANG(HOTEN,EMAIL,DIACHI,SDT) TO user15;
+GRANT SELECT ON SANPHAM TO user15;
+--Quyền cho nhân viên quản lý--
+GRANT SELECT, INSERT, UPDATE, DELETE ON SANPHAM TO user12;
+GRANT SELECT, INSERT, UPDATE, DELETE ON KHACHHANG TO user12;
+GRANT SELECT, INSERT, UPDATE, DELETE ON DONHANG TO user12;
+GRANT SELECT, INSERT, UPDATE, DELETE ON CT_DONHANG TO user12;
+GRANT SELECT, INSERT, UPDATE, DELETE ON GIOHANG TO user12;
+GRANT SELECT, INSERT, UPDATE, DELETE ON CT_GIOHANG TO user12;
+GRANT SELECT, INSERT, UPDATE, DELETE ON THANHTOAN TO user12;
+--Quyen cho quan tri vien--
+GRANT SELECT, INSERT, UPDATE, DELETE ON SANPHAM TO user11 WITH GRANT OPTION;
+GRANT SELECT, INSERT, UPDATE, DELETE ON KHACHHANG TO user11 WITH GRANT OPTION;
+GRANT SELECT, INSERT, UPDATE, DELETE ON NHANVIEN TO user11 WITH GRANT OPTION;
+GRANT SELECT, INSERT, UPDATE, DELETE ON DONHANG TO user11 WITH GRANT OPTION;
+GRANT SELECT, INSERT, UPDATE, DELETE ON CT_DONHANG TO user11 WITH GRANT OPTION;
+GRANT SELECT, INSERT, UPDATE, DELETE ON GIOHANG TO user11 WITH GRANT OPTION;
+GRANT SELECT, INSERT, UPDATE, DELETE ON CT_GIOHANG TO user11 WITH GRANT OPTION;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TAIKHOAN_KH TO user11 WITH GRANT OPTION;
+GRANT SELECT, INSERT, UPDATE, DELETE ON THANHTOAN TO user11 WITH GRANT OPTION;
+GRANT SELECT, INSERT, UPDATE, DELETE ON NHATKYDANGNHAP TO user11 WITH GRANT OPTION;
+--Thu hồi quyền của nhân viên--
+REVOKE INSERT ON SANPHAM FROM user12;
+REVOKE UPDATE ON DONHANG FROM user13;
+
+
+SELECT * FROM TAIKHOAN_KH WHERE TENDN = 'abcd';
+
+EXEC sp_helpconstraint 'TAIKHOAN_KH';
+
+select*from TAIKHOAN_KH
+
+--TRANSACTION
+
+CREATE PROCEDURE sp_KiemTraDangNhap
+    @TenDangNhap NVARCHAR(50),
+    @MatKhau NVARCHAR(50)
+AS
+BEGIN
+    DECLARE @Count INT;
+    DECLARE @TrangThai_HienTai NVARCHAR(50);
+    DECLARE @SoLanSai_HienTai INT;
+    DECLARE @KetQuaGhiLog NVARCHAR(20);
+
+    BEGIN TRANSACTION; 
+
+    SELECT @SoLanSai_HienTai = SoLanSai, 
+           @TrangThai_HienTai = TRANGTHAI
+    FROM TAIKHOAN_KH
+    WHERE TENDN = @TenDangNhap;
+
+    IF @@ROWCOUNT = 0
+    BEGIN
+        PRINT N'TÊN ĐĂNG NHẬP KO TỒN TẠI.';
+        SET @KetQuaGhiLog = N'Thất bại';
+    END
+    ELSE IF @TrangThai_HienTai = N'BỊ KHÓA' 
+    BEGIN
+        PRINT N'TÀI KHOẢN BỊ KHÓA.';
+        SET @KetQuaGhiLog = N'Bị khóa';
+    END
+    ELSE 
+    BEGIN
+        SELECT @Count = COUNT(*)
+        FROM TAIKHOAN_KH
+        WHERE TENDN = @TenDangNhap
+        AND MATKHAU = @MatKhau;
+
+        IF @Count = 1
+        BEGIN
+            PRINT N'ĐĂNG NHẬP THÀNH CÔNG!';
+            SET @KetQuaGhiLog = N'Thành công';
+
+            UPDATE TAIKHOAN_KH
+            SET SoLanSai = 0
+            WHERE TENDN = @TenDangNhap;
+        END
+        ELSE
+        BEGIN
+            PRINT N'ĐĂNG NHẬP THẤT BẠI: SAI MẬT KHẨU HOẶC TÊN ĐĂNG NHẬP. BẠN CÒN ' + CAST((5 - (@SoLanSai_HienTai + 1)) AS NVARCHAR) + N' LẦN THỬ.'
+            SET @KetQuaGhiLog = N'Thất bại'
+
+            UPDATE TAIKHOAN_KH
+            SET SoLanSai = @SoLanSai_HienTai + 1
+            WHERE TENDN = @TenDangNhap;
+
+            IF @SoLanSai_HienTai + 1 >= 5
+            BEGIN
+                UPDATE TAIKHOAN_KH
+                SET TRANGTHAI = N'BỊ KHÓA'
+                WHERE TENDN = @TenDangNhap;
+                PRINT N'TÀI KHOẢN ĐÃ BỊ KHÓA DO NHẬP SAI QUÁ 5 LẦN!';
+                SET @KetQuaGhiLog = N'Bị khóa'
+            END
+        END
+    END 
+
+    INSERT INTO NHATKYDANGNHAP (TENDN, THOIGIAN, KETQUA)
+    VALUES (@TenDangNhap, GETDATE(), @KetQuaGhiLog);
+
+    IF @@TRANCOUNT > 0 
+		BEGIN
+			COMMIT TRAN
+		END
+END
+GO
+-- Ví dụ kiểm tra:
+-- Đăng nhập thành công
+EXEC sp_KiemTraDangNhap 'binh02', '123'
+
+-- Đăng nhập thất bại
+EXEC sp_KiemTraDangNhap 'an01', 'sai_mat_khau'
+
+-- Kiểm tra bảng nhật ký:
+SELECT * FROM NHATKYDANGNHAP ORDER BY MA DESC
+
+
+select*from NHANVIEN
+select*from SANPHAM
+
+
+--==Kịch bản "Mất dữ liệu cập nhật" (Lost Update) 
+--Tình huống: 2 nhân viên cùng sửa tên của khách hàng
+UPDATE KHACHHANG SET HOTEN = N'Nguyễn Văn Gốc' WHERE MAKH = 'KH01';
+
+-- NV1: Đọc, Đợi, rồi Ghi
+USE QL_BANH;
+GO
+SET TRANSACTION ISOLATION LEVEL REPEATABLE READ --READ COMMITTED REPEATABLE READ
+BEGIN TRAN
+    DECLARE @TenCu NVARCHAR(50)
+    SELECT @TenCu = HOTEN 
+	FROM KHACHHANG 
+	WHERE MAKH = 'KH01'
+
+    WAITFOR DELAY '00:00:10' 
+
+    UPDATE KHACHHANG SET HOTEN = N'NV1 đã sửa' WHERE MAKH = 'KH01'
+COMMIT TRAN
+
+SELECT HOTEN FROM KHACHHANG WHERE MAKH = 'KH01'
+
+-- NV2: Chen ngang sửa dữ liệu
+USE QL_BANH;
+GO
+UPDATE KHACHHANG 
+SET HOTEN = N'NV2 đã sửa' 
+WHERE MAKH = 'KH01'
+

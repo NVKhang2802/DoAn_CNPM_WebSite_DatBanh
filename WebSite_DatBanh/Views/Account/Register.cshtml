@@ -1,0 +1,134 @@
+﻿@{
+    ViewData["Title"] = "Đăng ký tài khoản";
+    Layout = null; // Ẩn layout chính
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ABVN Shop</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f0f2f5; /* Màu nền xám nhạt */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-7 col-lg-6 col-xl-5">
+
+                <div class="card shadow-lg border-0 rounded-3">
+                    <div class="card-body p-4 p-sm-5">
+
+                        <div class="text-center mb-4">
+                            <div class="display-4 text-success mb-3">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <h1 class="h4 fw-bold">Tạo tài khoản mới</h1>
+                            <p class="text-muted">Tham gia cùng chúng tôi ngay hôm nay</p>
+                        </div>
+
+                        <form asp-controller="Account" asp-action="Register" method="post" id="registerForm">
+
+                            @if (ViewBag.Error != null)
+                            {
+                                <div class="alert alert-danger text-center small p-2">@ViewBag.Error</div>
+                            }
+
+                            <div id="jsError" class="alert alert-danger text-center small p-2 d-none"></div>
+
+
+                            <div class="mb-3">
+                                <label class="form-label" for="TENDN">Tên đăng nhập</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-at"></i>
+                                    </span>
+                                    <input type="text" name="TENDN" id="TENDN" class="form-control" placeholder="Chọn tên đăng nhập" required />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="EMAIL">Email</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-envelope"></i>
+                                    </span>
+                                    <input type="email" name="EMAIL" id="EMAIL" class="form-control" placeholder="Nhập địa chỉ email" required />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="MATKHAU">Mật khẩu</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                    <input type="password" name="MATKHAU" id="MATKHAU" class="form-control" placeholder="Tạo mật khẩu" required />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="CONFIRM">Xác nhận mật khẩu</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                    <input type="password" name="CONFIRM" id="CONFIRM" class="form-control" placeholder="Nhập lại mật khẩu" required />
+                                </div>
+                            </div>
+
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-success btn-lg fw-bold">
+                                    Tạo tài khoản
+                                </button>
+                            </div>
+
+                        </form>
+                    </div><div class="card-footer text-center p-3 bg-light border-0">
+                        <p class="mb-0">
+                            Bạn đã có tài khoản?
+                            <a asp-action="Login" class="fw-bold text-decoration-none">Đăng nhập ngay</a>
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+                // JavaScript đơn giản để kiểm tra mật khẩu khớp
+                document.getElementById('registerForm').addEventListener('submit', function(e) {
+                    var pass = document.getElementById('MATKHAU').value;
+                    var confirmPass = document.getElementById('CONFIRM').value;
+                    var errorDiv = document.getElementById('jsError');
+
+                    if (pass !== confirmPass) {
+                        // Ngăn form gửi đi
+                        e.preventDefault();
+
+                        // Hiển thị lỗi
+                        errorDiv.innerText = 'Mật khẩu xác nhận không khớp!';
+                        errorDiv.classList.remove('d-none');
+                    } else {
+                        // Ẩn lỗi nếu đã khớp
+                        errorDiv.classList.add('d-none');
+                    }
+                });
+            </script>
+        </body>
+        </html>

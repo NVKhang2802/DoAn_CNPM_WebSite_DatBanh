@@ -1,0 +1,204 @@
+﻿@model WebSite_DatBanh.Models.SanPham
+@{
+    ViewData["Title"] = "Sửa Sản phẩm";
+    Layout = "/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    
+    var currentImageUrl = Model.ANHSP ?? "";
+    var previewUrl = currentImageUrl.StartsWith("http") ? currentImageUrl : 
+                     currentImageUrl.Replace("~/", "/");
+    if (string.IsNullOrEmpty(previewUrl)) previewUrl = "/img/Cake/default.png";
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light border-0">
+                <h5 class="mb-0">Sửa sản phẩm: @Model.TENSP</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                    <input type="hidden" asp-for="MASP" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" asp-for="TENSP">Tên sản phẩm</label>
+                        <input class="form-control" asp-for="TENSP" />
+                        <span asp-validation-for="TENSP" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" asp-for="GIA">Giá</label>
+                        <input type="number" class="form-control" asp-for="GIA" />
+                        <span asp-validation-for="GIA" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" asp-for="MOTA">Mô tả</label>
+                        <textarea class="form-control" asp-for="MOTA" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Hình ảnh sản phẩm</label>
+                        
+                        <div class="mb-3 p-3 border rounded bg-light">
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <img id="currentImage" src="@previewUrl" alt="Current" style="height: 80px; object-fit: contain;" 
+                                         onerror="this.src='/img/Cake/default.png';" />
+                                </div>
+                                <div class="col">
+                                    <small class="text-muted">Ảnh hiện tại:</small><br/>
+                                    <code style="font-size: 0.8rem;">@Model.ANHSP</code>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <ul class="nav nav-tabs mb-3" id="imageTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="keep-tab" data-bs-toggle="tab" data-bs-target="#keep" type="button" role="tab">
+                                    <i class="fas fa-check me-1"></i> Giữ nguyên
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">
+                                    <i class="fas fa-upload me-1"></i> Tải ảnh mới
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="url-tab" data-bs-toggle="tab" data-bs-target="#urlInput" type="button" role="tab">
+                                    <i class="fas fa-link me-1"></i> Nhập URL
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="existing-tab" data-bs-toggle="tab" data-bs-target="#existing" type="button" role="tab">
+                                    <i class="fas fa-images me-1"></i> Ảnh có sẵn
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content" id="imageTabContent">
+                            <div class="tab-pane fade show active" id="keep" role="tabpanel">
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Giữ nguyên ảnh hiện tại, không thay đổi.
+                                </div>
+                                <input type="hidden" name="KeepCurrentImage" value="true" id="keepImageFlag" />
+                            </div>
+                            
+                            <div class="tab-pane fade" id="upload" role="tabpanel">
+                                <input type="file" class="form-control" name="ImageFile" id="imageUpload" accept="image/*" onchange="previewImage(this)" />
+                                <span class="form-text">Chọn file ảnh từ máy tính (jpg, png, gif...)</span>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="urlInput" role="tabpanel">
+                                <input type="text" class="form-control" name="ImageUrl" id="imageUrl" placeholder="https://example.com/image.jpg" onchange="previewFromUrl(this.value)" />
+                                <span class="form-text">Nhập URL đầy đủ của hình ảnh</span>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="existing" role="tabpanel">
+                                <select class="form-select" name="ExistingImage" id="existingImage" onchange="previewExisting(this.value)">
+                                    <option value="">-- Chọn ảnh có sẵn --</option>
+                                    @for (int i = 1; i <= 27; i++)
+                                    {
+                                        var ext = i >= 26 ? "jpg" : "png";
+                                        <option value="hinh@(i).@(ext)">hinh@(i).@(ext)</option>
+                                    }
+                                    <option value="default.png">default.png (Ảnh mặc định)</option>
+                                </select>
+                                <span class="form-text">Chọn từ danh sách ảnh có sẵn trong hệ thống</span>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" asp-for="ANHSP" id="finalImagePath" />
+                        
+                        <div class="mt-3" id="newImagePreviewContainer" style="display: none;">
+                            <label class="form-label">Ảnh mới:</label>
+                            <div class="border rounded p-3 bg-light text-center">
+                                <img id="imagePreview" src="/img/Cake/default.png" alt="Preview" style="max-height: 150px; max-width: 100%;" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold" asp-for="KICHCO">Kích cỡ</label>
+                            <input class="form-control" asp-for="KICHCO" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold" asp-for="MAUSAC">Màu sắc</label>
+                            <input class="form-control" asp-for="MAUSAC" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" asp-for="TRANGTHAI">Trạng thái</label>
+                        <select class="form-select" asp-for="TRANGTHAI">
+                            <option value="CÒN HÀNG">CÒN HÀNG</option>
+                            <option value="HẾT HÀNG">HẾT HÀNG</option>
+                        </select>
+                    </div>
+
+                    <hr />
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i> Lưu thay đổi
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i> Hủy
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showNewPreview() {
+            document.getElementById('newImagePreviewContainer').style.display = 'block';
+            document.getElementById('keepImageFlag').disabled = true;
+        }
+        
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    showNewPreview();
+                }
+                reader.readAsDataURL(input.files[0]);
+                document.getElementById('imageUrl').value = '';
+                document.getElementById('existingImage').value = '';
+            }
+        }
+        
+        function previewFromUrl(url) {
+            if (url) {
+                document.getElementById('imagePreview').src = url;
+                document.getElementById('finalImagePath').value = url;
+                showNewPreview();
+                document.getElementById('imageUpload').value = '';
+                document.getElementById('existingImage').value = '';
+            }
+        }
+        
+        function previewExisting(filename) {
+            if (filename) {
+                var path = '/img/Cake/' + filename;
+                document.getElementById('imagePreview').src = path;
+                document.getElementById('finalImagePath').value = '~/img/Cake/' + filename;
+                showNewPreview();
+                document.getElementById('imageUpload').value = '';
+                document.getElementById('imageUrl').value = '';
+            }
+        }
+        
+        document.getElementById('imagePreview').onerror = function() {
+            this.src = '/img/Cake/default.png';
+        }
+        
+        document.getElementById('keep-tab').addEventListener('click', function() {
+            document.getElementById('newImagePreviewContainer').style.display = 'none';
+            document.getElementById('keepImageFlag').disabled = false;
+        });
+    </script>
+}

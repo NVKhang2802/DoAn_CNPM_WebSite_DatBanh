@@ -1,0 +1,44 @@
+﻿@model WebSite_DatBanh.Models.DonHang
+@{
+    ViewData["Title"] = "Xác nhận Xóa Đơn hàng";
+    Layout = "/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="card shadow-sm border-0 col-lg-8">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">Xác nhận Xóa Đơn hàng</h5>
+    </div>
+    <div class="card-body">
+        <h4 class="card-title">Bạn có chắc chắn muốn xóa Đơn hàng này?</h4>
+        <p class="text-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Cảnh báo: Hành động này sẽ xóa vĩnh viễn đơn hàng và TẤT CẢ chi tiết sản phẩm trong đơn hàng đó.
+        </p>
+
+        <hr />
+
+        <dl class="row">
+            <dt class="col-sm-3">Mã ĐH:</dt>
+            <dd class="col-sm-9">@Model.MADH</dd>
+
+            <dt class="col-sm-3">Mã KH:</dt>
+            <dd class="col-sm-9">@Model.MAKH</dd>
+
+            <dt class="col-sm-3">Tổng tiền:</dt>
+            <dd class="col-sm-9">@String.Format("{0:N0}đ", Model.TONGTIEN)</dd>
+        </dl>
+
+        <hr />
+
+        <form asp-action="Delete" method="post">
+            <input type="hidden" asp-for="MADH" />
+
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash-alt me-2"></i> Vâng, Xóa
+            </button>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-times me-2"></i> Hủy
+            </a>
+        </form>
+    </div>
+</div>

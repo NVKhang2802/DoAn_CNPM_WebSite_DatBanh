@@ -1,0 +1,64 @@
+﻿@model WebSite_DatBanh.Models.DonHang
+@{
+    ViewData["Title"] = "Chi tiết đơn hàng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Chi tiết đơn hàng: #@Model.MADH</h3>
+        <span class="badge bg-secondary fs-6">@Model.TRANGTHAI</span>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-light fw-bold">Thông tin đơn hàng</div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Ngày đặt:</strong> @Model.NGAYDAT?.ToString("dd/MM/yyyy HH:mm")</p>
+                    <p class="mb-1"><strong>Tổng tiền:</strong> <span class="text-danger fw-bold">@String.Format("{0:N0}đ", Model.TONGTIEN)</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light fw-bold">Sản phẩm đã mua</div>
+                <div class="card-body p-0">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>Giá</th>
+                                <th>SL</th>
+                                <th class="text-end">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.CT_DONHANG)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <img src="@Url.Content(item.SANPHAM.ANHSP)" style="width:50px; height:50px; object-fit:cover; margin-right:10px;" class="rounded" />
+                                            <div>
+                                                <strong>@item.SANPHAM.TENSP</strong>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>@String.Format("{0:N0}đ", item.GIASP)</td>
+                                    <td>@item.SOLUONG</td>
+                                    <td class="text-end fw-bold">@String.Format("{0:N0}đ", item.GIASP * item.SOLUONG)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a asp-action="History" class="btn btn-outline-secondary">&larr; Quay lại danh sách</a>
+    </div>
+</div>

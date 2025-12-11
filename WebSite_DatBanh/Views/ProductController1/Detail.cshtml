@@ -1,0 +1,121 @@
+﻿@model WebSite_DatBanh.Models.SanPham
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = Model.TENSP;
+    // Lấy MAKH từ Session để hiển thị nút "Thêm vào giỏ"
+    var maKh_Session = Context.Session.GetString("MAKH");
+}
+
+<div class="container py-5">
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-3">
+                    <img src="@Url.Content(Model.ANHSP ?? "")" class="img-fluid rounded-3 product-detail-image" alt="@Model.TENSP" />
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body p-4">
+                    <h1 class="display-6 fw-bold mb-3">@Model.TENSP</h1>
+
+                    <p class="text-muted mb-4">Mã sản phẩm: <span class="fw-bold">@Model.MASP</span></p>
+
+                    <h2 class="text-primary display-5 fw-bolder mb-4">
+                        @String.Format("{0:N0}đ", Model.GIA)
+                    </h2>
+
+                    <div class="mb-4">
+                        <span class="fw-bold me-2">Trạng thái:</span>
+                        @if (Model.TRANGTHAI == "CÒN HÀNG")
+                        {
+                            <span class="badge bg-success fs-6">
+                                <i class="fas fa-check-circle me-1"></i> @Model.TRANGTHAI
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger fs-6">
+                                <i class="fas fa-times-circle me-1"></i> @Model.TRANGTHAI
+                            </span>
+                        }
+                    </div>
+
+                    <div class="mb-4">
+                        <span class="fw-bold me-2">Mô tả:</span>
+                        <p class="text-secondary">@(Model.MOTA ?? "Chưa có mô tả chi tiết.")</p>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    @if (Model.TRANGTHAI == "CÒN HÀNG")
+                    {
+                        <form asp-controller="Cart" asp-action="AddToCart" method="post">
+                            <input type="hidden" name="masp" value="@Model.MASP" />
+
+                            @if (maKh_Session != null)
+                            {
+                                <input type="hidden" name="maKh" value="@maKh_Session" />
+
+                                <div class="row g-3 align-items-end">
+                                    <div class="col-auto">
+                                        <label for="kichcoInput" class="form-label fw-bold">Kích cỡ:</label>
+                                        <select id="kichcoInput" name="kichco" class="form-select form-select-lg">
+                                            <option value="Nhỏ">Nhỏ (S)</option>
+                                            <option value="Vừa" selected>Vừa (M)</option>
+                                            <option value="Lớn">Lớn (L)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-auto">
+                                        <label for="qtyInput" class="form-label fw-bold">Số lượng:</label>
+                                        <input id="qtyInput" name="qty" type="number" value="1" min="1" max="99"
+                                               class="form-control form-control-lg text-center" style="width: 100px;" />
+                                    </div>
+
+                                    <div class="col-auto">
+                                        <button type="submit" class="btn btn-primary btn-lg d-flex align-items-center">
+                                            <i class="fas fa-cart-plus me-2"></i> Thêm vào giỏ
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <a asp-controller="Account" asp-action="Login" class="btn btn-warning btn-lg">
+                                    <i class="fas fa-sign-in-alt me-2"></i> Đăng nhập để thêm vào giỏ
+                                </a>
+                            }
+                        </form>
+                    }
+                    else
+                    {
+                        <button class="btn btn-secondary btn-lg" disabled>
+                            <i class="fas fa-times me-2"></i> Hết hàng
+                        </button>
+                        <a asp-controller="ProductController1" asp-action="Index" class="btn btn-warning btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i> Vui lòng chọn sản phẩm khác
+                        </a>
+                    }
+
+                    <hr class="my-4" />
+                    <a asp-controller="ProductController1" asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Quay lại danh sách sản phẩm
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .product-detail-image {
+            max-height: 500px; /* Giới hạn chiều cao của ảnh */
+            object-fit: contain; /* Đảm bảo ảnh hiển thị đầy đủ, không bị cắt */
+            width: 100%;
+        }
+    </style>
+}

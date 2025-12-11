@@ -1,0 +1,344 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>@ViewData["Title"] - CakeShop</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&display=swap" rel="stylesheet" />
+    <link href="~/lib/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="~/css/style_index.css" />
+    <link rel="stylesheet" href="~/css/responsive.css" />
+    <link rel="stylesheet" href="~/css/index_navbar.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+    @await RenderSectionAsync("Styles", required: false)
+    <style>
+        /* ============================
+           DROPDOWN USER MENU (NEW FIX)
+        =============================== */
+
+        .user-menu-container {
+            position: relative;
+            display: inline-block;
+            margin-left: 20px;
+        }
+
+        /* Nút mở dropdown */
+        .user-menu-trigger {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 4px 12px 4px 4px;
+            border-radius: 30px;
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+            .user-menu-trigger:hover {
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                background-color: #f8f9fa;
+            }
+
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            overflow: hidden;
+        }
+
+            .avatar-circle i {
+                font-size: 20px !important;
+                transform: none !important;
+                margin: 0 !important;
+            }
+
+
+        .user-name {
+            font-weight: 700;
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        /* ======================
+           DROPDOWN CONTENT
+        ====================== */
+        .user-menu-content {
+            display: none;
+            position: absolute;
+            top: 125%;
+            right: 0;
+            width: auto;
+            min-width: 350px;
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            z-index: 9999;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.05);
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+            .user-menu-content.show {
+                display: block;
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+        /* Header xanh */
+        .menu-header {
+            background: linear-gradient(135deg, #0d6efd, #0043a8);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-avatar i {
+            font-size: 40px;
+            margin-right: 15px;
+            color: white;
+        }
+
+        .header-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .greeting {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .name {
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+
+        /* ======================
+           MENU ITEMS
+        ====================== */
+        .menu-list {
+            list-style: none;
+            padding: 8px 0;
+            margin: 0;
+        }
+
+            .menu-list li a {
+                display: flex;
+                align-items: center;
+                padding: 12px 20px;
+                text-decoration: none;
+                color: #444;
+                font-weight: 600;
+                transition: background 0.2s;
+                white-space: nowrap; /* FIX VỠ CHỮ */
+            }
+
+        /* Icon trong vòng tròn */
+        .icon-box {
+            width: 36px;
+            height: 36px;
+            background-color: #f1f3f5;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: #6c757d;
+            transition: all 0.2s;
+        }
+
+            /* FIX LOẠN ICON — XÓA XOAY / SCALE CŨ */
+            .user-menu-content i,
+            .user-menu-trigger i,
+            .icon-box i {
+                font-size: 18px !important;
+                transform: none !important;
+                animation: none !important;
+            }
+
+        /* Hover đổi màu */
+        .menu-list li a:hover {
+            background-color: #f8f9fa;
+            color: #0d6efd;
+        }
+
+            .menu-list li a:hover .icon-box {
+                background-color: #fff;
+                color: #0d6efd;
+                box-shadow: 0 2px 6px rgba(13, 110, 253, 0.15);
+            }
+
+        /* Separator */
+        .separator {
+            height: 1px;
+            background-color: #f1f1f1;
+            margin: 4px 0;
+        }
+
+        /* Logout */
+        .logout-link:hover {
+            color: #dc3545 !important;
+            background-color: #fff5f5 !important;
+        }
+
+            .logout-link:hover .logout-icon {
+                color: #dc3545;
+                background-color: #fff;
+            }
+
+        /* ========================================
+           FIX: Override header icon hover effects
+           for user dropdown menu icons
+        ========================================== */
+        .user-menu-container i,
+        .user-menu-content i,
+        .menu-list i,
+        .icon-box i,
+        .header-avatar i {
+            transform: none !important;
+            background: transparent !important;
+            border-radius: 0 !important;
+            line-height: normal !important;
+            width: auto !important;
+            height: auto !important;
+        }
+
+        .user-menu-container .menu-list a:hover i,
+        .user-menu-content a:hover i,
+        .icon-box:hover i {
+            transform: none !important;
+            background: transparent !important;
+        }
+
+    </style>
+
+</head>
+<body>
+    <header>
+        <a href="~/" class="logo_main"><i class="fa-solid fa-feather"></i>&nbsp;ABVN.</a>
+
+        <nav class="navbar_main">
+            <a asp-controller="Home" asp-action="Index">Home</a>
+            <a asp-controller="ProductController1" asp-action="Index">Product</a>
+            <a asp-controller="Home" asp-action="About">About</a>
+            <a asp-controller="Home" asp-action="Contact">Contact</a>
+        </nav>
+
+        <div class="icons_main">
+            <i class="fas fa-bars" id="menu_bars" data-bs-toggle="offcanvas" data-bs-target="#demo"></i>
+            <form asp-controller="ProductController1" asp-action="Search" method="get" class="d-inline">
+                <input class="search_header" type="search" name="query" placeholder="Tìm bánh..." />
+            </form>
+            <a asp-controller="Cart" asp-action="Index" class="fa-solid fa-cart-shopping"></a>
+
+            @{
+                var tendn = Context.Session.GetString("TENDN");
+            }
+
+            @if (string.IsNullOrEmpty(tendn))
+            {
+                <a asp-controller="Account" asp-action="Login" class="fa-solid fa-user login_pc"></a>
+            }
+            else
+            {
+                <div class="user-menu-container">
+
+                    <div class="user-menu-trigger" onclick="toggleUserDropdown(event)">
+                        <div class="avatar-circle">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <span class="user-name">@tendn</span>
+                    </div>
+
+                    <div class="user-menu-content" id="myUserDropdown">
+
+                        <div class="menu-header">
+                            <div class="header-avatar">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <div class="header-info">
+                                <span class="greeting">Xin chào,</span>
+                                <span class="name">@tendn</span>
+                            </div>
+                        </div>
+
+                        <ul class="menu-list">
+                            <li>
+                                <a asp-controller="User" asp-action="Index">
+                                    <span class="icon-box"><i class="fas fa-id-card"></i></span>
+                                    Trang cá nhân
+                                </a>
+                            </li>
+                            <li>
+                                <a asp-controller="User" asp-action="History">
+                                    <span class="icon-box"><i class="fas fa-history"></i></span>
+                                    Lịch sử đơn hàng
+                                </a>
+                            </li>
+
+                            <li class="separator"></li>
+
+                            <li>
+                                <a asp-controller="Account" asp-action="Logout" class="logout-link">
+                                    <span class="icon-box logout-icon"><i class="fas fa-sign-out-alt"></i></span>
+                                    Đăng xuất
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+            }
+        </div>
+    </header>
+
+    <main role="main" class="pb-3 main-content">
+        @RenderBody()
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">ABVN - Cửa hàng bánh uy tín</div>
+                <div class="col-md-6 text-end">© @DateTime.Now.Year ABVN Shop</div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleUserDropdown(event) {
+            event.stopPropagation(); // Ngăn chặn click lan ra ngoài
+            var dropdown = document.getElementById("myUserDropdown");
+            dropdown.classList.toggle("show");
+        }
+
+        // Bấm ra ngoài thì đóng menu
+        window.onclick = function(event) {
+            var dropdown = document.getElementById("myUserDropdown");
+            if (dropdown.classList.contains("show")) {
+                if (!event.target.closest('.user-menu-container')) {
+                    dropdown.classList.remove("show");
+                }
+            }
+        }
+    </script>
+
+    <script src="~/js/script_Login.js"></script>
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

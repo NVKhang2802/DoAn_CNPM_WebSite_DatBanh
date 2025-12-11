@@ -1,0 +1,99 @@
+﻿@model IEnumerable<WebSite_DatBanh.Models.KhachHang>
+@using Microsoft.AspNetCore.Http
+@{
+    ViewData["Title"] = "Danh sách Khách hàng";
+    Layout = "/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var currentUserRole = Context.Session.GetString("ROLE");
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+@if (TempData["ErrorAdmin"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorAdmin"]</div>
+}
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-light border-0 py-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0">Danh sách Khách hàng</h5>
+
+            <div class="d-flex gap-2">
+                <form asp-action="Index" method="get" class="d-flex">
+                    <input type="text" name="sdt" class="form-control form-control-sm me-2"
+                           placeholder="Nhập SĐT..." value="@ViewBag.SearchSDT" style="width: 150px;" />
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+
+                @if (currentUserRole == "Quản lý")
+                {
+                    <form asp-action="UpdateStats" method="post">
+                        <button type="submit" class="btn btn-warning btn-sm text-dark fw-bold"
+                                title="Chạy Procedure Cursor để tính lại số đơn hàng">
+                            <i class="fas fa-sync-alt me-1"></i> Cập nhật số liệu
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-striped table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Mã KH</th>
+                    <th>Họ tên</th>
+                    <th>SĐT</th>
+                    <th class="text-center">Số đơn đã mua</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.MAKH</td>
+                        <td>@item.HOTEN</td>
+                        <td>@item.SDT</td>
+
+                        <td class="text-center">
+                            @if (item.SOLANDATHANG > 0)
+                            {
+                                <span class="badge bg-success rounded-pill">@item.SOLANDATHANG</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">-</span>
+                            }
+                        </td>
+
+                        <td class="text-end">
+                            <a asp-action="Details" asp-route-id="@item.MAKH" class="btn btn-info btn-sm">
+                                <i class="fas fa-eye"></i> Chi tiết
+                            </a>
+
+                            @if (currentUserRole == "Quản lý")
+                            {
+                                <form asp-action="Delete" method="post" class="d-inline"
+                                      onsubmit="return confirm('Bạn có chắc muốn xóa khách hàng [@item.HOTEN] không?');">
+                                    <input type="hidden" name="id" value="@item.MAKH" />
+                                    <button type="submit" class="btn btn-danger btn-sm ms-1" title="Test Trigger chặn xóa">
+                                        <i class="fas fa-trash"></i> Xóa
+                                    </button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
