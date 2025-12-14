@@ -16,6 +16,7 @@ namespace WebSite_DatBanh.Models
         public DbSet<ChiTietGioHang> CT_GIOHANG { get; set; }
         public DbSet<ThanhToan> THANHTOAN { get; set; }
         public DbSet<TaiKhoanKH> TAIKHOAN_KH { get; set; }
+        public DbSet<DanhGia> DANHGIA { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -61,6 +62,16 @@ namespace WebSite_DatBanh.Models
 
             modelBuilder.Entity<KhachHang>()
                 .ToTable(tb => tb.HasTrigger("TRG_CHAN_XOA_KHACHHANG"));
+
+            modelBuilder.Entity<DanhGia>()
+                .HasOne(d => d.SANPHAM)
+                .WithMany(s => s.DANHGIA)
+                .HasForeignKey(d => d.MASP);
+
+            modelBuilder.Entity<DanhGia>()
+                .HasOne(d => d.KHACHHANG)
+                .WithMany()
+                .HasForeignKey(d => d.MAKH);
         }
     }
 }

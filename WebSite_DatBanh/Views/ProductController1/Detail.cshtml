@@ -108,14 +108,275 @@
             </div>
         </div>
     </div>
+
+    <!-- Section Đánh giá sản phẩm -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-star me-2"></i>Đánh giá sản phẩm</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Rating tổng quan -->
+                    <div class="row mb-4">
+                        <div class="col-md-4 text-center border-end">
+                            <h2 class="display-4 fw-bold text-warning" id="avgRating">0</h2>
+                            <div id="avgStars" class="mb-2">
+                                <i class="far fa-star text-warning fs-4"></i>
+                                <i class="far fa-star text-warning fs-4"></i>
+                                <i class="far fa-star text-warning fs-4"></i>
+                                <i class="far fa-star text-warning fs-4"></i>
+                                <i class="far fa-star text-warning fs-4"></i>
+                            </div>
+                            <p class="text-muted"><span id="totalReviews">0</span> đánh giá</p>
+                        </div>
+                        <div class="col-md-8">
+                            @if (maKh_Session != null)
+                            {
+                                <!-- Form đánh giá -->
+                                <div class="p-3 bg-light rounded">
+                                    <h5 class="mb-3">Viết đánh giá của bạn</h5>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Chọn số sao:</label>
+                                        <div id="starRating" class="star-rating">
+                                            <i class="far fa-star fs-3" data-value="1"></i>
+                                            <i class="far fa-star fs-3" data-value="2"></i>
+                                            <i class="far fa-star fs-3" data-value="3"></i>
+                                            <i class="far fa-star fs-3" data-value="4"></i>
+                                            <i class="far fa-star fs-3" data-value="5"></i>
+                                        </div>
+                                        <input type="hidden" id="selectedRating" value="0" />
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="reviewComment" class="form-label fw-bold">Bình luận:</label>
+                                        <textarea id="reviewComment" class="form-control" rows="3" placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."></textarea>
+                                    </div>
+                                    <button id="submitReview" class="btn btn-primary">
+                                        <i class="fas fa-paper-plane me-2"></i>Gửi đánh giá
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-3 bg-light rounded text-center">
+                                    <p class="mb-2">Đăng nhập để đánh giá sản phẩm</p>
+                                    <a asp-controller="Account" asp-action="Login" class="btn btn-warning">
+                                        <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Danh sách đánh giá -->
+                    <h5 class="mb-3">Tất cả đánh giá</h5>
+                    <div id="reviewsList">
+                        <p class="text-muted text-center">Đang tải đánh giá...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Styles {
     <style>
         .product-detail-image {
-            max-height: 500px; /* Giới hạn chiều cao của ảnh */
-            object-fit: contain; /* Đảm bảo ảnh hiển thị đầy đủ, không bị cắt */
+            max-height: 500px;
+            object-fit: contain;
             width: 100%;
         }
+        .star-rating i {
+            cursor: pointer;
+            color: #ddd;
+            transition: color 0.2s ease;
+        }
+        .star-rating i:hover,
+        .star-rating i.hovered,
+        .star-rating i.selected {
+            color: #ffc107;
+        }
+        .review-item {
+            border-left: 3px solid #0d6efd;
+            padding-left: 15px;
+            margin-bottom: 15px;
+        }
+        .review-stars i {
+            color: #ffc107;
+        }
     </style>
+}
+
+@section Scripts {
+    <script>
+        const masp = '@Model.MASP';
+
+        // Load đánh giá khi trang load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadReviews();
+            setupStarRating();
+        });
+
+        function setupStarRating() {
+            const stars = document.querySelectorAll('#starRating i');
+            const selectedRating = document.getElementById('selectedRating');
+
+            stars.forEach(star => {
+                star.addEventListener('mouseenter', function() {
+                    const value = parseInt(this.dataset.value);
+                    highlightStars(value, 'hovered');
+                });
+
+                star.addEventListener('mouseleave', function() {
+                    const currentValue = parseInt(selectedRating.value);
+                    clearStars();
+                    if (currentValue > 0) {
+                        highlightStars(currentValue, 'selected');
+                    }
+                });
+
+                star.addEventListener('click', function() {
+                    const value = parseInt(this.dataset.value);
+                    selectedRating.value = value;
+                    clearStars();
+                    highlightStars(value, 'selected');
+                });
+            });
+        }
+
+        function highlightStars(count, className) {
+            const stars = document.querySelectorAll('#starRating i');
+            stars.forEach((star, index) => {
+                if (index < count) {
+                    star.classList.remove('far');
+                    star.classList.add('fas', className);
+                }
+            });
+        }
+
+        function clearStars() {
+            const stars = document.querySelectorAll('#starRating i');
+            stars.forEach(star => {
+                star.classList.remove('fas', 'hovered', 'selected');
+                star.classList.add('far');
+            });
+        }
+
+        function loadReviews() {
+            fetch('/Review/GetByProduct?masp=' + masp)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateAvgRating(data.avgRating, data.totalReviews);
+                        renderReviews(data.reviews);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading reviews:', error);
+                    document.getElementById('reviewsList').innerHTML = '<p class="text-danger">Không thể tải đánh giá.</p>';
+                });
+        }
+
+        function updateAvgRating(avg, total) {
+            document.getElementById('avgRating').textContent = avg.toFixed(1);
+            document.getElementById('totalReviews').textContent = total;
+
+            const avgStars = document.getElementById('avgStars');
+            let starsHtml = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= avg) {
+                    starsHtml += '<i class="fas fa-star text-warning fs-4"></i>';
+                } else if (i - 0.5 <= avg) {
+                    starsHtml += '<i class="fas fa-star-half-alt text-warning fs-4"></i>';
+                } else {
+                    starsHtml += '<i class="far fa-star text-warning fs-4"></i>';
+                }
+            }
+            avgStars.innerHTML = starsHtml;
+        }
+
+        function renderReviews(reviews) {
+            const container = document.getElementById('reviewsList');
+            if (reviews.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">Chưa có đánh giá nào cho sản phẩm này.</p>';
+                return;
+            }
+
+            let html = '';
+            reviews.forEach(review => {
+                let stars = '';
+                for (let i = 1; i <= 5; i++) {
+                    stars += i <= review.sosao ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+                }
+
+                let replyHtml = '';
+                if (review.phanhoi) {
+                    replyHtml = `
+                        <div class="bg-light border-start border-success border-3 ps-3 mt-2 py-2">
+                            <div class="d-flex justify-content-between">
+                                <strong class="text-success"><i class="fas fa-reply me-1"></i>Phản hồi từ Shop:</strong>
+                                <small class="text-muted">${review.ngayphanhoi}</small>
+                            </div>
+                            <p class="mb-0 mt-1">${review.phanhoi}</p>
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="review-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${review.tenKH}</strong>
+                                <div class="review-stars">${stars}</div>
+                            </div>
+                            <small class="text-muted">${review.ngaydg}</small>
+                        </div>
+                        <p class="mt-2 mb-0">${review.binhluan || '<em class="text-muted">Không có bình luận</em>'}</p>
+                        ${replyHtml}
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        // Submit đánh giá
+        const submitBtn = document.getElementById('submitReview');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', function() {
+                const sosao = parseInt(document.getElementById('selectedRating').value);
+                const binhluan = document.getElementById('reviewComment').value;
+
+                if (sosao < 1 || sosao > 5) {
+                    alert('Vui lòng chọn số sao từ 1 đến 5!');
+                    return;
+                }
+
+                fetch('/Review/Create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `masp=${masp}&sosao=${sosao}&binhluan=${encodeURIComponent(binhluan)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        document.getElementById('reviewComment').value = '';
+                        document.getElementById('selectedRating').value = '0';
+                        clearStars();
+                        loadReviews();
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra khi gửi đánh giá!');
+                });
+            });
+        }
+    </script>
 }

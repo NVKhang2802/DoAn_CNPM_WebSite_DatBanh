@@ -33,5 +33,6 @@ namespace WebSite_DatBanh.Models
 
         public ICollection<ChiTietDonHang>? CT_DONHANG { get; set; }
         public ICollection<ChiTietGioHang>? CT_GIOHANG { get; set; }
+        public ICollection<DanhGia>? DANHGIA { get; set; }
     }
 }

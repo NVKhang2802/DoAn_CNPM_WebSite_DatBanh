@@ -1,0 +1,141 @@
+@model List<WebSite_DatBanh.Models.DanhGia>
+@{
+    var sanPham = ViewBag.SanPham as WebSite_DatBanh.Models.SanPham;
+    ViewData["Title"] = "Đánh giá: " + sanPham?.TENSP;
+    var distribution = ViewBag.Distribution as Dictionary<int, int>;
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <a asp-action="Index" class="btn btn-outline-secondary mb-3">
+                <i class="fas fa-arrow-left me-2"></i>Quay lại danh sách
+            </a>
+            <h2 class="fw-bold"><i class="fas fa-star me-2 text-warning"></i>Đánh giá: @sanPham?.TENSP</h2>
+        </div>
+    </div>
+
+    <!-- Thông tin sản phẩm -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <img src="@Url.Content(sanPham?.ANHSP ?? "")" class="card-img-top" alt="@sanPham?.TENSP" style="max-height: 200px; object-fit: contain;">
+                <div class="card-body text-center">
+                    <h5 class="card-title">@sanPham?.TENSP</h5>
+                    <p class="text-muted">Mã: @sanPham?.MASP</p>
+                    <h4 class="text-primary">@String.Format("{0:N0}đ", sanPham?.GIA)</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Thống kê đánh giá</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center border-end">
+                            <h1 class="display-3 fw-bold text-warning">@ViewBag.AvgRating</h1>
+                            <div class="mb-2">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    var avg = (double)ViewBag.AvgRating;
+                                    if (i <= avg)
+                                    {
+                                        <i class="fas fa-star text-warning fs-5"></i>
+                                    }
+                                    else if (i - 0.5 <= avg)
+                                    {
+                                        <i class="fas fa-star-half-alt text-warning fs-5"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="far fa-star text-warning fs-5"></i>
+                                    }
+                                }
+                            </div>
+                            <p class="text-muted">@ViewBag.TotalReviews đánh giá</p>
+                        </div>
+                        <div class="col-md-8">
+                            @if (distribution != null)
+                            {
+                                var total = Model.Count > 0 ? Model.Count : 1;
+                                @for (int star = 5; star >= 1; star--)
+                                {
+                                    var count = distribution.ContainsKey(star) ? distribution[star] : 0;
+                                    var percent = (count * 100) / total;
+                                    <div class="d-flex align-items-center mb-2">
+                                        <span class="me-2" style="width: 50px;">@star <i class="fas fa-star text-warning"></i></span>
+                                        <div class="progress flex-grow-1" style="height: 20px;">
+                                            <div class="progress-bar bg-warning" style="width: @percent%;">@count</div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách đánh giá -->
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Tất cả đánh giá (@Model.Count)</h5>
+        </div>
+        <div class="card-body">
+            @if (Model.Any())
+            {
+                @foreach (var dg in Model)
+                {
+                    <div class="border-start border-primary border-3 ps-3 mb-4">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>@(dg.KHACHHANG?.HOTEN ?? "Khách hàng")</strong>
+                                <div class="text-warning">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        if (i <= dg.SOSAO)
+                                        {
+                                            <i class="fas fa-star"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="far fa-star"></i>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">@dg.NGAYDG.ToString("dd/MM/yyyy HH:mm")</small>
+                                <form asp-action="Delete" asp-route-id="@dg.MADG" method="post" class="mt-1">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa?');">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <p class="mt-2 mb-0">
+                            @if (!string.IsNullOrEmpty(dg.BINHLUAN))
+                            {
+                                @dg.BINHLUAN
+                            }
+                            else
+                            {
+                                <em class="text-muted">Không có bình luận</em>
+                            }
+                        </p>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Chưa có đánh giá nào cho sản phẩm này.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>

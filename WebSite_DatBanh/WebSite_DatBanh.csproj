@@ -80,5 +80,13 @@
 	  <Content Include="Areas\Admin\Views\_ViewImports.cshtml" />
 	  <Content Include="Areas\Admin\Views\_ViewStart.cshtml" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Content Include="Areas\Admin\Views\Review\ByProduct.cshtml">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Areas\Admin\Views\Review\Index.cshtml">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
 
 </Project>

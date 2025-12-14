@@ -1,0 +1,183 @@
+@model List<WebSite_DatBanh.Models.DanhGia>
+@{
+    ViewData["Title"] = "Quản lý Đánh giá";
+    var stats = ViewBag.Stats;
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold"><i class="fas fa-star me-2 text-warning"></i>Quản lý Đánh giá Sản phẩm</h2>
+        </div>
+    </div>
+
+    @if (TempData["SuccessAdmin"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessAdmin"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Thống kê -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">@stats.TotalReviews</h3>
+                    <small>Tổng đánh giá</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h3 class="mb-0">@stats.AvgRating <i class="fas fa-star"></i></h3>
+                    <small>Rating trung bình</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <small class="text-muted">Phân bố đánh giá:</small>
+                    <div class="d-flex justify-content-around mt-2">
+                        <span class="badge bg-success">5⭐: @stats.Star5</span>
+                        <span class="badge bg-info">4⭐: @stats.Star4</span>
+                        <span class="badge bg-secondary">3⭐: @stats.Star3</span>
+                        <span class="badge bg-warning text-dark">2⭐: @stats.Star2</span>
+                        <span class="badge bg-danger">1⭐: @stats.Star1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Tìm theo sản phẩm:</label>
+                    <input type="text" name="searchProduct" class="form-control" value="@ViewBag.SearchProduct" placeholder="Tên hoặc mã sản phẩm...">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Lọc theo số sao:</label>
+                    <select name="filterStar" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="5" selected="@(ViewBag.FilterStar == 5)">5 sao</option>
+                        <option value="4" selected="@(ViewBag.FilterStar == 4)">4 sao</option>
+                        <option value="3" selected="@(ViewBag.FilterStar == 3)">3 sao</option>
+                        <option value="2" selected="@(ViewBag.FilterStar == 2)">2 sao</option>
+                        <option value="1" selected="@(ViewBag.FilterStar == 1)">1 sao</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Tìm kiếm
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>Xóa lọc
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Danh sách đánh giá -->
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Danh sách đánh giá (@Model.Count)</h5>
+        </div>
+        <div class="card-body">
+            @if (Model.Any())
+            {
+                @foreach (var dg in Model)
+                {
+                    <div class="border rounded p-3 mb-3">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <strong class="text-primary">@(dg.KHACHHANG?.HOTEN ?? "Khách hàng")</strong>
+                                        <span class="text-muted ms-2">đánh giá</span>
+                                        <a asp-action="ByProduct" asp-route-id="@dg.MASP" class="text-decoration-none fw-bold">
+                                            @(dg.SANPHAM?.TENSP ?? dg.MASP)
+                                        </a>
+                                    </div>
+                                    <small class="text-muted">@dg.NGAYDG.ToString("dd/MM/yyyy HH:mm")</small>
+                                </div>
+                                <div class="mb-2">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        if (i <= dg.SOSAO)
+                                        {
+                                            <i class="fas fa-star text-warning"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="far fa-star text-warning"></i>
+                                        }
+                                    }
+                                </div>
+                                <p class="mb-2">
+                                    @if (!string.IsNullOrEmpty(dg.BINHLUAN))
+                                    {
+                                        @dg.BINHLUAN
+                                    }
+                                    else
+                                    {
+                                        <em class="text-muted">Không có bình luận</em>
+                                    }
+                                </p>
+
+                                @if (!string.IsNullOrEmpty(dg.PHANHOI))
+                                {
+                                    <div class="bg-light border-start border-primary border-3 p-2 mt-2">
+                                        <div class="d-flex justify-content-between">
+                                            <strong class="text-success"><i class="fas fa-reply me-1"></i>Phản hồi từ Admin:</strong>
+                                            <small class="text-muted">@(dg.NGAYPHANHOI?.ToString("dd/MM/yyyy HH:mm") ?? "")</small>
+                                        </div>
+                                        <p class="mb-0 mt-1">@dg.PHANHOI</p>
+                                    </div>
+                                }
+                            </div>
+                            <div class="col-md-4">
+                                <div class="bg-light p-2 rounded">
+                                    <form asp-action="Reply" method="post">
+                                        <input type="hidden" name="id" value="@dg.MADG" />
+                                        <div class="mb-2">
+                                            <label class="form-label small fw-bold">
+                                                <i class="fas fa-reply me-1"></i>
+                                                @(string.IsNullOrEmpty(dg.PHANHOI) ? "Viết phản hồi:" : "Sửa phản hồi:")
+                                            </label>
+                                            <textarea name="phanhoi" class="form-control form-control-sm" rows="2" 
+                                                placeholder="Nhập phản hồi của bạn...">@dg.PHANHOI</textarea>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                <i class="fas fa-paper-plane me-1"></i>Gửi
+                                            </button>
+                                        </div>
+                                    </form>
+                                    <form asp-action="Delete" asp-route-id="@dg.MADG" method="post" class="mt-2">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa đánh giá này?');">
+                                            <i class="fas fa-trash me-1"></i>Xóa
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Chưa có đánh giá nào.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
