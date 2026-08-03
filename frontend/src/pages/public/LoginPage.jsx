@@ -16,7 +16,8 @@ export const LoginPage = () => {
     try {
       const user = await login(tendn, matkhau);
       showToast(`Đăng nhập thành công! Chào mừng ${user.hoten} trở lại.`);
-      if (user.role === 'ADMIN' || user.role === 'QUẢN LÝ') {
+      const isStaff = ['ADMIN', 'QUẢN LÝ', 'QUẢN TRỊ', 'NHÂN VIÊN'].includes(user.role?.toUpperCase());
+      if (isStaff) {
         navigate('/admin');
       } else {
         navigate('/');

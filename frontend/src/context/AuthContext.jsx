@@ -54,7 +54,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('cake_token');
   };
 
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'QUẢN LÝ';
+  const userRole = user?.role ? user.role.toUpperCase() : '';
+  const isAdmin = ['ADMIN', 'QUẢN LÝ', 'QUẢN TRỊ', 'NHÂN VIÊN'].includes(userRole);
 
   return (
     <AuthContext.Provider value={{ user, token, loading, login, register, logout, isAdmin }}>
@@ -63,4 +64,10 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
