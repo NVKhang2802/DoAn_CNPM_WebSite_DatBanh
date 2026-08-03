@@ -297,6 +297,10 @@ BEGIN
     ('NV01', N'Quản Trị Viên Hệ Thống', N'ADMIN', 'admin', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L653f.K9bZ8N.S2', '/uploads/default.png'),
     ('NV02', N'Nguyễn Văn Quản Lý', N'QUẢN LÝ', 'manager', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L653f.K9bZ8N.S2', '/uploads/default.png');
 END
+ELSE
+BEGIN
+    UPDATE NHANVIEN SET MATKHAU = '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L653f.K9bZ8N.S2', CHUCVU = N'ADMIN' WHERE TENDN = 'admin';
+END
 
 -- 5. Khách hàng mẫu
 IF NOT EXISTS (SELECT * FROM KHACHHANG WHERE MAKH = 'KH01')
