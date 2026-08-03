@@ -24,7 +24,7 @@ class AuthRepository {
   static async capNhatKetQuaDangNhap(tendn, isSuccess, ipAddress) {
     await executeProcedure('sp_TaiKhoan_CapNhatKetQuaDangNhap', {
       p_TENDN: tendn,
-      p_IS_SUCCESS: isSuccess,
+      p_THANHCONG: isSuccess ? 1 : 0,
       p_IPADDRESS: ipAddress,
     });
   }
