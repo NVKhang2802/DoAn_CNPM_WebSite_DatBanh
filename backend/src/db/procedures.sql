@@ -1,0 +1,865 @@
+-- =================================================================
+-- ENTERPRISE SQL SERVER STORED PROCEDURES & TRIGGERS
+-- Database: QL_BANH
+-- All Business Logic Handled 100% Directly inside SQL Server
+-- =================================================================
+
+USE QL_BANH;
+GO
+
+-- =================================================================
+-- ATOMIC SQL SEQUENCES FOR CONCURRENCY-SAFE ID GENERATION (DB-001)
+-- =================================================================
+IF NOT EXISTS (SELECT * FROM sys.sequences WHERE name = 'seq_KhachHang')
+    CREATE SEQUENCE seq_KhachHang START WITH 100 INCREMENT BY 1;
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.sequences WHERE name = 'seq_DonHang')
+    CREATE SEQUENCE seq_DonHang START WITH 100 INCREMENT BY 1;
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.sequences WHERE name = 'seq_DanhGia')
+    CREATE SEQUENCE seq_DanhGia START WITH 100 INCREMENT BY 1;
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.sequences WHERE name = 'seq_SanPham')
+    CREATE SEQUENCE seq_SanPham START WITH 100 INCREMENT BY 1;
+GO
+
+
+-- 1. STORED PROCEDURE: ĐĂNG KÝ TÀI KHOẢN KHÁCH HÀNG
+CREATE OR ALTER PROCEDURE sp_KhachHang_DangKy
+    @p_HOTEN NVARCHAR(100),
+    @p_TENDN NVARCHAR(50),
+    @p_MATKHAU NVARCHAR(255),
+    @p_EMAIL NVARCHAR(100),
+    @p_SDT VARCHAR(15),
+    @p_DIACHI NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF EXISTS (SELECT 1 FROM KHACHHANG WHERE TENDN = @p_TENDN)
+        BEGIN
+            RAISERROR(N'Tên đăng nhập đã tồn tại trong hệ thống', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        IF EXISTS (SELECT 1 FROM KHACHHANG WHERE EMAIL = @p_EMAIL)
+        BEGIN
+            RAISERROR(N'Email này đã được sử dụng cho tài khoản khác', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        DECLARE @NextVal INT = NEXT VALUE FOR seq_KhachHang;
+        DECLARE @NewMaKH NVARCHAR(10) = 'KH' + RIGHT('00000' + CAST(@NextVal AS VARCHAR(10)), 5);
+
+        INSERT INTO KHACHHANG (MAKH, HOTEN, TENDN, MATKHAU, EMAIL, SDT, DIACHI)
+        VALUES (@NewMaKH, @p_HOTEN, @p_TENDN, @p_MATKHAU, @p_EMAIL, @p_SDT, @p_DIACHI);
+
+        DECLARE @NewMaTK NVARCHAR(10) = 'TK' + RIGHT('00000' + CAST(@NextVal AS VARCHAR(10)), 5);
+        INSERT INTO TAIKHOAN_KH (MATK, MAKH, TENDN, MATKHAU, TRANGTHAI, SoLanSai)
+        VALUES (@NewMaTK, @NewMaKH, @p_TENDN, @p_MATKHAU, N'ĐANG HOẠT ĐỘNG', 0);
+
+        DECLARE @NewMaGH NVARCHAR(10) = 'GH' + RIGHT('00000' + CAST(@NextVal AS VARCHAR(10)), 5);
+        INSERT INTO GIOHANG (MAGH, MAKH) VALUES (@NewMaGH, @NewMaKH);
+
+        COMMIT TRANSACTION;
+
+        SELECT @NewMaKH AS MAKH, @p_HOTEN AS HOTEN, @p_TENDN AS TENDN, @p_EMAIL AS EMAIL, 'CUSTOMER' AS ROLE, @p_SDT AS SDT, @p_DIACHI AS DIACHI;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+
+
+-- 2. STORED PROCEDURE: LẤY HỒ SƠ CÁ NHÂN KHÁCH HÀNG (GET PROFILE)
+CREATE OR ALTER PROCEDURE sp_KhachHang_GetProfile
+    @p_MAKH NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        KH.MAKH, KH.HOTEN, KH.TENDN, KH.EMAIL, KH.SDT, KH.DIACHI, KH.NGAYTAO,
+        TK.TRANGTHAI, TK.MATKHAU AS MATKHAU_HASH, 'CUSTOMER' AS ROLE
+    FROM KHACHHANG KH
+    INNER JOIN TAIKHOAN_KH TK ON KH.MAKH = TK.MAKH
+    WHERE KH.MAKH = @p_MAKH;
+END
+GO
+
+
+-- 3. STORED PROCEDURE: CẬP NHẬT HỒ SƠ CÁ NHÂN KHÁCH HÀNG (UPDATE PROFILE)
+CREATE OR ALTER PROCEDURE sp_KhachHang_UpdateProfile
+    @p_MAKH NVARCHAR(10),
+    @p_HOTEN NVARCHAR(100),
+    @p_EMAIL NVARCHAR(100),
+    @p_SDT VARCHAR(15),
+    @p_DIACHI NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM KHACHHANG WHERE EMAIL = @p_EMAIL AND MAKH <> @p_MAKH)
+    BEGIN
+        RAISERROR(N'Email này đã được đăng ký bởi tài khoản khác', 16, 1);
+        RETURN;
+    END
+
+    UPDATE KHACHHANG
+    SET HOTEN = @p_HOTEN,
+        EMAIL = @p_EMAIL,
+        SDT = @p_SDT,
+        DIACHI = @p_DIACHI
+    WHERE MAKH = @p_MAKH;
+
+    EXEC sp_KhachHang_GetProfile @p_MAKH;
+END
+GO
+
+
+-- 4. STORED PROCEDURE: ĐỔI MẬT KHẨU KHÁCH HÀNG
+CREATE OR ALTER PROCEDURE sp_KhachHang_DoiMatKhau
+    @p_MAKH NVARCHAR(10),
+    @p_MATKHAU_MOI NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE KHACHHANG SET MATKHAU = @p_MATKHAU_MOI WHERE MAKH = @p_MAKH;
+    UPDATE TAIKHOAN_KH SET MATKHAU = @p_MATKHAU_MOI WHERE MAKH = @p_MAKH;
+
+    SELECT @p_MAKH AS MAKH, N'Đổi mật khẩu thành công' AS MESSAGE;
+END
+GO
+
+
+-- 5. STORED PROCEDURE: TỰ ĐỘNG NÂNG CẤP MẬT KHẨU MÃ HÓA BCRYPT DYNAMICALLY
+CREATE OR ALTER PROCEDURE sp_TaiKhoan_CapNhatMatKhauBcrypt
+    @p_TENDN NVARCHAR(50),
+    @p_MATKHAU_BCRYPT NVARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE TAIKHOAN_KH SET MATKHAU = @p_MATKHAU_BCRYPT WHERE TENDN = @p_TENDN;
+    UPDATE KHACHHANG SET MATKHAU = @p_MATKHAU_BCRYPT WHERE TENDN = @p_TENDN;
+    UPDATE NHANVIEN SET MATKHAU = @p_MATKHAU_BCRYPT WHERE TENDN = @p_TENDN;
+END
+GO
+
+
+-- 6. STORED PROCEDURE: ĐĂNG NHẬP HỆ THỐNG
+CREATE OR ALTER PROCEDURE sp_TaiKhoan_DangNhap
+    @p_TENDN NVARCHAR(50),
+    @p_IPADDRESS NVARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- 1. Kiểm tra trong Khách Hàng
+    IF EXISTS (SELECT 1 FROM TAIKHOAN_KH WHERE TENDN = @p_TENDN)
+    BEGIN
+        SELECT 
+            TK.MAKH AS USER_ID, TK.TENDN, TK.MATKHAU, TK.TRANGTHAI, TK.SoLanSai,
+            KH.HOTEN, KH.EMAIL, KH.SDT, KH.DIACHI, 'CUSTOMER' AS ROLE
+        FROM TAIKHOAN_KH TK
+        INNER JOIN KHACHHANG KH ON TK.MAKH = KH.MAKH
+        WHERE TK.TENDN = @p_TENDN;
+        RETURN;
+    END
+
+    -- 2. Kiểm tra trong Nhân Viên / Admin
+    IF EXISTS (SELECT 1 FROM NHANVIEN WHERE TENDN = @p_TENDN)
+    BEGIN
+        SELECT 
+            MANV AS USER_ID, TENDN, MATKHAU, TRANGTHAI, 0 AS SoLanSai,
+            HOTEN, NULL AS EMAIL, NULL AS SDT, NULL AS DIACHI, CHUCVU AS ROLE
+        FROM NHANVIEN
+        WHERE TENDN = @p_TENDN;
+        RETURN;
+    END
+
+    RAISERROR(N'Tài khoản không tồn tại trên hệ thống', 16, 1);
+END
+GO
+
+
+-- 7. STORED PROCEDURE: CẬP NHẬT KẾT QUẢ ĐĂNG NHẬP VÀ LOG NHẬT KÝ
+CREATE OR ALTER PROCEDURE sp_TaiKhoan_CapNhatKetQuaDangNhap
+    @p_TENDN NVARCHAR(50),
+    @p_THANHCONG BIT,
+    @p_IPADDRESS NVARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @p_THANHCONG = 1
+    BEGIN
+        UPDATE TAIKHOAN_KH SET SoLanSai = 0 WHERE TENDN = @p_TENDN;
+        INSERT INTO NHATKYDANGNHAP (TENDN, KETQUA, IPADDRESS) VALUES (@p_TENDN, N'THÀNH CÔNG', @p_IPADDRESS);
+    END
+    ELSE
+    BEGIN
+        UPDATE TAIKHOAN_KH SET SoLanSai = ISNULL(SoLanSai, 0) + 1 WHERE TENDN = @p_TENDN;
+        UPDATE TAIKHOAN_KH SET TRANGTHAI = N'BỊ KHÓA' WHERE TENDN = @p_TENDN AND SoLanSai >= 5;
+        INSERT INTO NHATKYDANGNHAP (TENDN, KETQUA, IPADDRESS) VALUES (@p_TENDN, N'THẤT BẠI', @p_IPADDRESS);
+    END
+END
+GO
+
+
+-- 8. STORED PROCEDURE: KIỂM TRA MÃ VOUCHER KHUYẾN MÃI
+CREATE OR ALTER PROCEDURE sp_Voucher_KiemTra
+    @p_MAKM NVARCHAR(20),
+    @p_TONGTIEN DECIMAL(18,2)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @PhanTram INT, @GiamToiDa DECIMAL(18,2), @GiaTriToiThieu DECIMAL(18,2), @Soluong INT, @NgayKetThuc DATETIME, @TrangThaiVoucher NVARCHAR(50);
+
+    SELECT 
+        @PhanTram = PHENTRAM_GIAM,
+        @GiamToiDa = GIAM_TOIDA,
+        @GiaTriToiThieu = GIA_TRI_TOI_THIEU,
+        @Soluong = SOLUONG,
+        @NgayKetThuc = NGAYKETHUC,
+        @TrangThaiVoucher = TRANGTHAI
+    FROM VOUCHER
+    WHERE MAKM = @p_MAKM;
+
+    IF @PhanTram IS NULL OR @TrangThaiVoucher <> N'HOẠT ĐỘNG'
+    BEGIN
+        RAISERROR(N'Mã giảm giá không tồn tại hoặc đã hết hiệu lực', 16, 1);
+        RETURN;
+    END
+
+    IF @NgayKetThuc IS NOT NULL AND @NgayKetThuc < GETDATE()
+    BEGIN
+        RAISERROR(N'Mã giảm giá đã quá hạn sử dụng', 16, 1);
+        RETURN;
+    END
+
+    IF @Soluong <= 0
+    BEGIN
+        RAISERROR(N'Mã giảm giá này đã hết lượt sử dụng', 16, 1);
+        RETURN;
+    END
+
+    IF @p_TONGTIEN < @GiaTriToiThieu
+    BEGIN
+        DECLARE @Msg NVARCHAR(255) = N'Đơn hàng chưa đạt giá trị tối thiểu ' + CAST(@GiaTriToiThieu AS VARCHAR(20)) + N'đ để áp dụng voucher này';
+        RAISERROR(@Msg, 16, 1);
+        RETURN;
+    END
+
+    -- Tính số tiền được giảm
+    DECLARE @TienGiam DECIMAL(18,2) = 0;
+    IF @PhanTram > 0
+    BEGIN
+        SET @TienGiam = (@p_TONGTIEN * @PhanTram) / 100.0;
+        IF @GiamToiDa > 0 AND @TienGiam > @GiamToiDa
+            SET @TienGiam = @GiamToiDa;
+    END
+    ELSE IF @GiamToiDa > 0
+    BEGIN
+        SET @TienGiam = @GiamToiDa;
+    END
+
+    SELECT @p_MAKM AS MAKM, @TienGiam AS TIENGIAM, (@p_TONGTIEN - @TienGiam) AS TONGTIEN_SAU_GIAM;
+END
+GO
+
+
+-- 9. STORED PROCEDURE: KHÁCH HÀNG TỰ HỦY ĐƠN HÀNG (CUSTOMER CANCEL ORDER)
+CREATE OR ALTER PROCEDURE sp_DonHang_HuyDonKhach
+    @p_MADH NVARCHAR(10),
+    @p_MAKH NVARCHAR(10),
+    @p_LYDO NVARCHAR(255) = N'Khách hàng yêu cầu hủy đơn'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        DECLARE @TrangThai NVARCHAR(50);
+        SELECT @TrangThai = TRANGTHAI FROM DONHANG WHERE MADH = @p_MADH AND MAKH = @p_MAKH;
+
+        IF @TrangThai IS NULL
+        BEGIN
+            RAISERROR(N'Không tìm thấy đơn hàng của bạn', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        IF @TrangThai <> N'ĐANG XỬ LÝ'
+        BEGIN
+            RAISERROR(N'Đơn hàng đã được duyệt hoặc đang giao, không thể tự hủy. Vui lòng liên hệ Hotline cửa hàng.', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        -- Hoàn lại tồn kho cho các sản phẩm trong đơn
+        UPDATE SP
+        SET SP.SOLUONGTON = SP.SOLUONGTON + CT.SOLUONG,
+            SP.TRANGTHAI = N'CÒN HÀNG'
+        FROM SANPHAM SP
+        INNER JOIN CT_DONHANG CT ON SP.MASP = CT.MASP
+        WHERE CT.MADH = @p_MADH;
+
+        -- Cập nhật đơn hàng thành ĐÃ HỦY
+        UPDATE DONHANG
+        SET TRANGTHAI = N'ĐÃ HỦY',
+            GHICHU = ISNULL(GHICHU, '') + N' [Khách hủy: ' + ISNULL(@p_LYDO, '') + N']'
+        WHERE MADH = @p_MADH;
+
+        UPDATE THANHTOAN SET TRANGTHAI = N'HOÀN TIỀN' WHERE MADH = @p_MADH;
+
+        COMMIT TRANSACTION;
+        SELECT @p_MADH AS MADH, N'ĐÃ HỦY' AS TRANGTHAI, N'Hủy đơn hàng thành công' AS MESSAGE;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+
+
+-- 10. STORED PROCEDURE: LẤY SẢN PHẨM & CHI TIẾT SẢN PHẨM
+CREATE OR ALTER PROCEDURE sp_SanPham_GetList
+    @p_TUKHOA NVARCHAR(100) = NULL,
+    @p_MADM NVARCHAR(10) = NULL,
+    @p_GIA_TU DECIMAL(18,2) = NULL,
+    @p_GIA_DEN DECIMAL(18,2) = NULL,
+    @p_TRANGTHAI NVARCHAR(50) = NULL,
+    @p_PAGENUMBER INT = 1,
+    @p_PAGESIZE INT = 20,
+    @p_SORTBY NVARCHAR(50) = 'MOI_NHAT'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        SP.MASP, SP.TENSP, SP.GIA, SP.MOTA, SP.ANHSP, SP.KICHCO, SP.MAUSAC, SP.TRANGTHAI, SP.SOLUONGTON, SP.NGAYTAO,
+        DM.TENDM,
+        ISNULL(AVG(CAST(DG.SOSAO AS FLOAT)), 5.0) AS DIEM_DANHGIA,
+        COUNT(DG.MADG) AS SO_LUOT_DANHGIA
+    FROM SANPHAM SP
+    LEFT JOIN DANHMUC DM ON SP.MADM = DM.MADM
+    LEFT JOIN DANHGIA DG ON SP.MASP = DG.MASP
+    WHERE 
+        (@p_TUKHOA IS NULL OR SP.TENSP LIKE '%' + @p_TUKHOA + '%' OR SP.MOTA LIKE '%' + @p_TUKHOA + '%')
+        AND (@p_MADM IS NULL OR SP.MADM = @p_MADM)
+        AND (@p_GIA_TU IS NULL OR SP.GIA >= @p_GIA_TU)
+        AND (@p_GIA_DEN IS NULL OR SP.GIA <= @p_GIA_DEN)
+        AND (@p_TRANGTHAI IS NULL OR SP.TRANGTHAI = @p_TRANGTHAI)
+    GROUP BY 
+        SP.MASP, SP.TENSP, SP.GIA, SP.MOTA, SP.ANHSP, SP.KICHCO, SP.MAUSAC, SP.TRANGTHAI, SP.SOLUONGTON, SP.NGAYTAO, DM.TENDM
+    ORDER BY 
+        CASE WHEN @p_SORTBY = 'GIA_ASC' THEN SP.GIA END ASC,
+        CASE WHEN @p_SORTBY = 'GIA_DESC' THEN SP.GIA END DESC,
+        CASE WHEN @p_SORTBY = 'MOI_NHAT' THEN SP.NGAYTAO END DESC
+    OFFSET (@p_PAGENUMBER - 1) * @p_PAGESIZE ROWS
+    FETCH NEXT @p_PAGESIZE ROWS ONLY;
+END
+GO
+
+CREATE OR ALTER PROCEDURE sp_SanPham_GetDetail
+    @p_MASP NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        SP.MASP, SP.TENSP, SP.GIA, SP.MOTA, SP.ANHSP, SP.KICHCO, SP.MAUSAC, SP.TRANGTHAI, SP.SOLUONGTON, SP.NGAYTAO,
+        DM.TENDM,
+        ISNULL(AVG(CAST(DG.SOSAO AS FLOAT)), 5.0) AS DIEM_DANHGIA,
+        COUNT(DG.MADG) AS SO_LUOT_DANHGIA
+    FROM SANPHAM SP
+    LEFT JOIN DANHMUC DM ON SP.MADM = DM.MADM
+    LEFT JOIN DANHGIA DG ON SP.MASP = DG.MASP
+    WHERE SP.MASP = @p_MASP
+    GROUP BY 
+        SP.MASP, SP.TENSP, SP.GIA, SP.MOTA, SP.ANHSP, SP.KICHCO, SP.MAUSAC, SP.TRANGTHAI, SP.SOLUONGTON, SP.NGAYTAO, DM.TENDM;
+END
+GO
+
+
+-- 11. STORED PROCEDURE: GIỎ HÀNG MANAGEMENT
+CREATE OR ALTER PROCEDURE sp_GioHang_GetDetail
+    @p_MAKH NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @MAGH NVARCHAR(10);
+    SELECT @MAGH = MAGH FROM GIOHANG WHERE MAKH = @p_MAKH;
+    IF @MAGH IS NULL
+    BEGIN
+        DECLARE @NextVal INT = NEXT VALUE FOR seq_KhachHang;
+        SET @MAGH = 'GH' + RIGHT('00000' + CAST(@NextVal AS VARCHAR(10)), 5);
+        INSERT INTO GIOHANG (MAGH, MAKH) VALUES (@MAGH, @p_MAKH);
+    END
+    SELECT 
+        CT.MAGH, CT.MASP, SP.TENSP, SP.ANHSP, SP.GIA AS DONGIA, CT.SOLUONG, 
+        ISNULL(CT.KICHCO, SP.KICHCO) AS KICHCO,
+        (SP.GIA * CT.SOLUONG) AS THANHTIEN
+    FROM CT_GIOHANG CT
+    INNER JOIN SANPHAM SP ON CT.MASP = SP.MASP
+    WHERE CT.MAGH = @MAGH;
+END
+GO
+
+CREATE OR ALTER PROCEDURE sp_GioHang_ThemSanPham
+    @p_MAKH NVARCHAR(10),
+    @p_MASP NVARCHAR(10),
+    @p_SOLUONG INT = 1,
+    @p_KICHCO NVARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @MAGH NVARCHAR(10);
+    SELECT @MAGH = MAGH FROM GIOHANG WHERE MAKH = @p_MAKH;
+    IF @MAGH IS NULL
+    BEGIN
+        DECLARE @NextVal INT = NEXT VALUE FOR seq_KhachHang;
+        SET @MAGH = 'GH' + RIGHT('00000' + CAST(@NextVal AS VARCHAR(10)), 5);
+        INSERT INTO GIOHANG (MAGH, MAKH) VALUES (@MAGH, @p_MAKH);
+    END
+    IF EXISTS (SELECT 1 FROM CT_GIOHANG WHERE MAGH = @MAGH AND MASP = @p_MASP)
+    BEGIN
+        UPDATE CT_GIOHANG 
+        SET SOLUONG = SOLUONG + @p_SOLUONG,
+            KICHCO = ISNULL(@p_KICHCO, KICHCO)
+        WHERE MAGH = @MAGH AND MASP = @p_MASP;
+    END
+    ELSE
+    BEGIN
+        INSERT INTO CT_GIOHANG (MAGH, MASP, SOLUONG, KICHCO)
+        VALUES (@MAGH, @p_MASP, @p_SOLUONG, @p_KICHCO);
+    END
+END
+GO
+
+CREATE OR ALTER PROCEDURE sp_GioHang_XoaItem
+    @p_MAKH NVARCHAR(10),
+    @p_MASP NVARCHAR(10) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @MAGH NVARCHAR(10);
+    SELECT @MAGH = MAGH FROM GIOHANG WHERE MAKH = @p_MAKH;
+    IF @MAGH IS NOT NULL
+    BEGIN
+        IF @p_MASP IS NULL
+            DELETE FROM CT_GIOHANG WHERE MAGH = @MAGH;
+        ELSE
+            DELETE FROM CT_GIOHANG WHERE MAGH = @MAGH AND MASP = @p_MASP;
+    END
+END
+GO
+
+
+-- 12. STORED PROCEDURE: TẠO ĐƠN HÀNG MỚI CHUẨN TRANSACTION & VALIDATION (DB-001 & LOGIC-001 FIX)
+CREATE OR ALTER PROCEDURE sp_DonHang_TaoMoi
+    @p_MAKH NVARCHAR(10),
+    @p_DIACHIGIAO NVARCHAR(255),
+    @p_SDTNHAN VARCHAR(15),
+    @p_PHUONGTHUCTT NVARCHAR(50) = N'TIỀN MẶT',
+    @p_GHICHU NVARCHAR(500) = NULL,
+    @p_MAKM NVARCHAR(20) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        DECLARE @MAGH NVARCHAR(10);
+        SELECT @MAGH = MAGH FROM GIOHANG WHERE MAKH = @p_MAKH;
+
+        IF @MAGH IS NULL OR NOT EXISTS (SELECT 1 FROM CT_GIOHANG WHERE MAGH = @MAGH)
+        BEGIN
+            RAISERROR(N'Giỏ hàng của bạn đang trống, không thể tạo đơn hàng', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        IF EXISTS (
+            SELECT 1 
+            FROM CT_GIOHANG CT
+            INNER JOIN SANPHAM SP ON CT.MASP = SP.MASP
+            WHERE CT.MAGH = @MAGH AND (SP.SOLUONGTON < CT.SOLUONG OR SP.TRANGTHAI = N'HẾT HÀNG')
+        )
+        BEGIN
+            RAISERROR(N'Một hoặc nhiều sản phẩm trong giỏ hàng đã hết hoặc không đủ tồn kho', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        DECLARE @TongTien DECIMAL(18,2);
+        SELECT @TongTien = SUM(SP.GIA * CT.SOLUONG)
+        FROM CT_GIOHANG CT
+        INNER JOIN SANPHAM SP ON CT.MASP = SP.MASP
+        WHERE CT.MAGH = @MAGH;
+
+        -- Full Voucher Validation Rules (LOGIC-001 Fix)
+        DECLARE @TienGiam DECIMAL(18,2) = 0;
+        IF @p_MAKM IS NOT NULL AND TRIM(@p_MAKM) <> ''
+        BEGIN
+            DECLARE @PhanTram INT, @GiamToiDa DECIMAL(18,2), @GiaTriToiThieu DECIMAL(18,2), @SoluongVoucher INT, @NgayKetThuc DATETIME, @TrangThaiVoucher NVARCHAR(50);
+            
+            SELECT 
+                @PhanTram = PHENTRAM_GIAM, 
+                @GiamToiDa = GIAM_TOIDA,
+                @GiaTriToiThieu = GIA_TRI_TOI_THIEU,
+                @SoluongVoucher = SOLUONG,
+                @NgayKetThuc = NGAYKETHUC,
+                @TrangThaiVoucher = TRANGTHAI
+            FROM VOUCHER WHERE MAKM = @p_MAKM;
+
+            IF @PhanTram IS NULL OR @TrangThaiVoucher <> N'HOẠT ĐỘNG'
+            BEGIN
+                RAISERROR(N'Mã giảm giá không tồn tại hoặc đã hết hiệu lực', 16, 1);
+                ROLLBACK TRANSACTION;
+                RETURN;
+            END
+
+            IF @NgayKetThuc IS NOT NULL AND @NgayKetThuc < GETDATE()
+            BEGIN
+                RAISERROR(N'Mã giảm giá đã quá hạn sử dụng', 16, 1);
+                ROLLBACK TRANSACTION;
+                RETURN;
+            END
+
+            IF @SoluongVoucher <= 0
+            BEGIN
+                RAISERROR(N'Mã giảm giá này đã hết lượt sử dụng', 16, 1);
+                ROLLBACK TRANSACTION;
+                RETURN;
+            END
+
+            IF @TongTien < @GiaTriToiThieu
+            BEGIN
+                RAISERROR(N'Đơn hàng chưa đạt giá trị tối thiểu để áp dụng mã giảm giá này', 16, 1);
+                ROLLBACK TRANSACTION;
+                RETURN;
+            END
+
+            IF @PhanTram > 0
+            BEGIN
+                SET @TienGiam = (@TongTien * @PhanTram) / 100.0;
+                IF @GiamToiDa > 0 AND @TienGiam > @GiamToiDa SET @TienGiam = @GiamToiDa;
+            END
+            ELSE IF @GiamToiDa > 0 SET @TienGiam = @GiamToiDa;
+
+            UPDATE VOUCHER SET SOLUONG = SOLUONG - 1 WHERE MAKM = @p_MAKM;
+        END
+
+        DECLARE @TongTienThucTe DECIMAL(18,2) = @TongTien - @TienGiam;
+        IF @TongTienThucTe < 0 SET @TongTienThucTe = 0;
+
+        -- Concurrency-Safe Atomic Sequence Generator (DB-001 Fix)
+        DECLARE @NextDHVal INT = NEXT VALUE FOR seq_DonHang;
+        DECLARE @NewMaDH NVARCHAR(10) = 'DH' + RIGHT('00000' + CAST(@NextDHVal AS VARCHAR(10)), 5);
+
+        INSERT INTO DONHANG (MADH, MAKH, NGAYDAT, TONGTIEN, TRANGTHAI, DIACHIGIAO, SDTNHAN, GHICHU, MAKM, TIENGIAM)
+        VALUES (@NewMaDH, @p_MAKH, GETDATE(), @TongTienThucTe, N'ĐANG XỬ LÝ', @p_DIACHIGIAO, @p_SDTNHAN, @p_GHICHU, @p_MAKM, @TienGiam);
+
+        INSERT INTO CT_DONHANG (MADH, MASP, SOLUONG, GIASP, KICHCO)
+        SELECT @NewMaDH, CT.MASP, CT.SOLUONG, SP.GIA, ISNULL(CT.KICHCO, SP.KICHCO)
+        FROM CT_GIOHANG CT
+        INNER JOIN SANPHAM SP ON CT.MASP = SP.MASP
+        WHERE CT.MAGH = @MAGH;
+
+        UPDATE SP
+        SET SP.SOLUONGTON = SP.SOLUONGTON - CT.SOLUONG,
+            SP.TRANGTHAI = CASE WHEN (SP.SOLUONGTON - CT.SOLUONG) <= 0 THEN N'HẾT HÀNG' ELSE SP.TRANGTHAI END
+        FROM SANPHAM SP
+        INNER JOIN CT_GIOHANG CT ON SP.MASP = CT.MASP
+        WHERE CT.MAGH = @MAGH;
+
+        DECLARE @NewMaTT NVARCHAR(10) = 'TT' + RIGHT('00000' + CAST(@NextDHVal AS VARCHAR(10)), 5);
+        INSERT INTO THANHTOAN (MATT, MADH, PHUONGTHUC, NGAYTT, SOTIEN, TRANGTHAI, GHICHU)
+        VALUES (@NewMaTT, @NewMaDH, @p_PHUONGTHUCTT, GETDATE(), @TongTienThucTe, 
+                CASE WHEN @p_PHUONGTHUCTT = N'TIỀN MẶT' THEN N'CHƯA THANH TOÁN' ELSE N'ĐÃ THANH TOÁN' END,
+                @p_GHICHU);
+
+        DELETE FROM CT_GIOHANG WHERE MAGH = @MAGH;
+
+        COMMIT TRANSACTION;
+        SELECT @NewMaDH AS MADH, @TongTienThucTe AS TONGTIEN, N'ĐANG XỬ LÝ' AS TRANGTHAI;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+
+
+-- 13. STORED PROCEDURE: CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG (ADMIN/EMPLOYEE)
+CREATE OR ALTER PROCEDURE sp_DonHang_CapNhatTrangThai
+    @p_MADH NVARCHAR(10),
+    @p_TRANGTHAI_MOI NVARCHAR(50),
+    @p_MANV NVARCHAR(10) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        DECLARE @TrangThaiHienTai NVARCHAR(50);
+        SELECT @TrangThaiHienTai = TRANGTHAI FROM DONHANG WHERE MADH = @p_MADH;
+
+        IF @TrangThaiHienTai IS NULL
+        BEGIN
+            RAISERROR(N'Không tìm thấy đơn hàng trong hệ thống', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        IF @TrangThaiHienTai = N'HOÀN THÀNH' OR @TrangThaiHienTai = N'ĐÃ HỦY'
+        BEGIN
+            RAISERROR(N'Đơn hàng đã hoàn thành hoặc đã hủy, không thể thay đổi trạng thái', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+
+        IF @p_TRANGTHAI_MOI = N'ĐÃ HỦY'
+        BEGIN
+            UPDATE SP
+            SET SP.SOLUONGTON = SP.SOLUONGTON + CT.SOLUONG,
+                SP.TRANGTHAI = N'CÒN HÀNG'
+            FROM SANPHAM SP
+            INNER JOIN CT_DONHANG CT ON SP.MASP = CT.MASP
+            WHERE CT.MADH = @p_MADH;
+
+            UPDATE THANHTOAN SET TRANGTHAI = N'HOÀN TIỀN' WHERE MADH = @p_MADH;
+        END
+        ELSE IF @p_TRANGTHAI_MOI = N'HOÀN THÀNH'
+        BEGIN
+            UPDATE THANHTOAN SET TRANGTHAI = N'ĐÃ THANH TOÁN' WHERE MADH = @p_MADH;
+        END
+
+        UPDATE DONHANG
+        SET TRANGTHAI = @p_TRANGTHAI_MOI,
+            MANV = ISNULL(@p_MANV, MANV)
+        WHERE MADH = @p_MADH;
+
+        COMMIT TRANSACTION;
+        SELECT @p_MADH AS MADH, @p_TRANGTHAI_MOI AS TRANGTHAI;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+
+
+-- 14. STORED PROCEDURE: LẤY DANH SÁCH & CHI TIẾT ĐƠN HÀNG
+CREATE OR ALTER PROCEDURE sp_DonHang_GetList
+    @p_MAKH NVARCHAR(10) = NULL,
+    @p_TRANGTHAI NVARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        DH.MADH, DH.MAKH, KH.HOTEN AS TENKHACHHANG, KH.SDT, DH.NGAYDAT, DH.TONGTIEN, 
+        DH.TRANGTHAI, DH.DIACHIGIAO, DH.SDTNHAN, DH.GHICHU, DH.MAKM, DH.TIENGIAM,
+        TT.PHUONGTHUC, TT.TRANGTHAI AS TRANGTHAI_TT
+    FROM DONHANG DH
+    LEFT JOIN KHACHHANG KH ON DH.MAKH = KH.MAKH
+    LEFT JOIN THANHTOAN TT ON DH.MADH = TT.MADH
+    WHERE 
+        (@p_MAKH IS NULL OR DH.MAKH = @p_MAKH)
+        AND (@p_TRANGTHAI IS NULL OR DH.TRANGTHAI = @p_TRANGTHAI)
+    ORDER BY DH.NGAYDAT DESC;
+END
+GO
+
+CREATE OR ALTER PROCEDURE sp_DonHang_GetDetail
+    @p_MADH NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        DH.MADH, DH.MAKH, KH.HOTEN AS TENKHACHHANG, KH.EMAIL, DH.NGAYDAT, DH.TONGTIEN, 
+        DH.TRANGTHAI, DH.DIACHIGIAO, DH.SDTNHAN, DH.GHICHU, DH.MAKM, DH.TIENGIAM,
+        TT.PHUONGTHUC, TT.TRANGTHAI AS TRANGTHAI_TT
+    FROM DONHANG DH
+    LEFT JOIN KHACHHANG KH ON DH.MAKH = KH.MAKH
+    LEFT JOIN THANHTOAN TT ON DH.MADH = TT.MADH
+    WHERE DH.MADH = @p_MADH;
+
+    SELECT 
+        CT.MADH, CT.MASP, SP.TENSP, SP.ANHSP, CT.SOLUONG, CT.GIASP, CT.KICHCO,
+        (CT.SOLUONG * CT.GIASP) AS THANHTIEN
+    FROM CT_DONHANG CT
+    INNER JOIN SANPHAM SP ON CT.MASP = SP.MASP
+    WHERE CT.MADH = @p_MADH;
+END
+GO
+
+
+-- 15. STORED PROCEDURE: ĐÁNH GIÁ SẢN PHẨM (WITH VERIFIED PURCHASE CHECK - LOGIC-002 FIX)
+CREATE OR ALTER PROCEDURE sp_DanhGia_ThemMoi
+    @p_MASP NVARCHAR(10),
+    @p_MAKH NVARCHAR(10),
+    @p_SOSAO INT,
+    @p_BINHLUAN NVARCHAR(500)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @p_SOSAO < 1 OR @p_SOSAO > 5
+    BEGIN
+        RAISERROR(N'Số sao đánh giá phải từ 1 đến 5 sao', 16, 1);
+        RETURN;
+    END
+
+    -- Verified Purchase Rule (LOGIC-002 Fix)
+    IF NOT EXISTS (
+        SELECT 1 
+        FROM DONHANG DH
+        INNER JOIN CT_DONHANG CT ON DH.MADH = CT.MADH
+        WHERE DH.MAKH = @p_MAKH AND CT.MASP = @p_MASP AND DH.TRANGTHAI = N'HOÀN THÀNH'
+    )
+    BEGIN
+        RAISERROR(N'Bạn chỉ có thể gửi đánh giá sau khi đã mua và nhận hàng thành công.', 16, 1);
+        RETURN;
+    END
+
+    DECLARE @NextDGVal INT = NEXT VALUE FOR seq_DanhGia;
+    DECLARE @NewMaDG NVARCHAR(10) = 'DG' + RIGHT('00000' + CAST(@NextDGVal AS VARCHAR(10)), 5);
+
+    INSERT INTO DANHGIA (MADG, MASP, MAKH, SOSAO, BINHLUAN, NGAYDG)
+    VALUES (@NewMaDG, @p_MASP, @p_MAKH, @p_SOSAO, @p_BINHLUAN, GETDATE());
+
+    SELECT @NewMaDG AS MADG, N'Thêm đánh giá thành công' AS MESSAGE;
+END
+GO
+
+CREATE OR ALTER PROCEDURE sp_DanhGia_PhanHoiAdmin
+    @p_MADG NVARCHAR(10),
+    @p_PHANHOI NVARCHAR(500)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE DANHGIA
+    SET PHANHOI = @p_PHANHOI,
+        NGAYPHANHOI = GETDATE()
+    WHERE MADG = @p_MADG;
+
+    SELECT @p_MADG AS MADG, N'Đã lưu phản hồi của cửa hàng' AS MESSAGE;
+END
+GO
+
+CREATE OR ALTER PROCEDURE sp_DanhGia_GetByProduct
+    @p_MASP NVARCHAR(10)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        DG.MADG, DG.MASP, DG.MAKH, KH.HOTEN AS TENKHACHHANG, 
+        DG.SOSAO, DG.BINHLUAN, DG.NGAYDG, DG.PHANHOI, DG.NGAYPHANHOI
+    FROM DANHGIA DG
+    INNER JOIN KHACHHANG KH ON DG.MAKH = KH.MAKH
+    WHERE DG.MASP = @p_MASP
+    ORDER BY DG.NGAYDG DESC;
+END
+GO
+
+
+-- 16. STORED PROCEDURE: THỐNG KÊ DASHBOARD & LOGS (ADMIN)
+CREATE OR ALTER PROCEDURE sp_Admin_ThongKeDashboard
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @TongDoanhThu DECIMAL(18,2);
+    SELECT @TongDoanhThu = ISNULL(SUM(TONGTIEN), 0) FROM DONHANG WHERE TRANGTHAI = N'HOÀN THÀNH';
+
+    DECLARE @TongDonHang INT;
+    SELECT @TongDonHang = COUNT(*) FROM DONHANG;
+
+    DECLARE @TongKhachHang INT;
+    SELECT @TongKhachHang = COUNT(*) FROM KHACHHANG;
+
+    DECLARE @TongSanPham INT;
+    SELECT @TongSanPham = COUNT(*) FROM SANPHAM;
+
+    SELECT 
+        @TongDoanhThu AS TONG_DOANH_THU,
+        @TongDonHang AS TONG_DON_HANG,
+        @TongKhachHang AS TONG_KHACH_HANG,
+        @TongSanPham AS TONG_SAN_PHAM;
+
+    SELECT TOP 5 
+        SP.MASP, SP.TENSP, SP.ANHSP, SUM(CT.SOLUONG) AS DA_BAN, SUM(CT.SOLUONG * CT.GIASP) AS DOANH_THU
+    FROM CT_DONHANG CT
+    INNER JOIN SANPHAM SP ON CT.MASP = SP.MASP
+    INNER JOIN DONHANG DH ON CT.MADH = DH.MADH
+    WHERE DH.TRANGTHAI = N'HOÀN THÀNH'
+    GROUP BY SP.MASP, SP.TENSP, SP.ANHSP
+    ORDER BY DA_BAN DESC;
+END
+GO
+
+CREATE OR ALTER PROCEDURE sp_Admin_GetLoginLogs
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TOP 100 MA, TENDN, THOIGIAN, KETQUA, ISNULL(IPADDRESS, '127.0.0.1') AS IPADDRESS
+    FROM NHATKYDANGNHAP
+    ORDER BY THOIGIAN DESC;
+END
+GO
+
+
+-- 17. STORED PROCEDURE: UPSERT SẢN PHẨM (ADMIN)
+CREATE OR ALTER PROCEDURE sp_SanPham_Upsert
+    @p_MASP NVARCHAR(10) = NULL,
+    @p_TENSP NVARCHAR(100),
+    @p_GIA DECIMAL(18,2),
+    @p_MOTA NVARCHAR(1000),
+    @p_ANHSP NVARCHAR(255),
+    @p_KICHCO NVARCHAR(50),
+    @p_MAUSAC NVARCHAR(50),
+    @p_TRANGTHAI NVARCHAR(50),
+    @p_SOLUONGTON INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF @p_MASP IS NOT NULL AND EXISTS (SELECT 1 FROM SANPHAM WHERE MASP = @p_MASP)
+    BEGIN
+        UPDATE SANPHAM
+        SET TENSP = @p_TENSP,
+            GIA = @p_GIA,
+            MOTA = @p_MOTA,
+            ANHSP = ISNULL(@p_ANHSP, ANHSP),
+            KICHCO = @p_KICHCO,
+            MAUSAC = @p_MAUSAC,
+            TRANGTHAI = @p_TRANGTHAI,
+            SOLUONGTON = @p_SOLUONGTON
+        WHERE MASP = @p_MASP;
+
+        SELECT @p_MASP AS MASP, N'Cập nhật sản phẩm thành công' AS MESSAGE;
+    END
+    ELSE
+    BEGIN
+        DECLARE @NextSPVal INT = NEXT VALUE FOR seq_SanPham;
+        DECLARE @NewMaSP NVARCHAR(10) = 'SP' + RIGHT('00000' + CAST(@NextSPVal AS VARCHAR(10)), 5);
+
+        INSERT INTO SANPHAM (MASP, TENSP, GIA, MOTA, ANHSP, KICHCO, MAUSAC, TRANGTHAI, SOLUONGTON)
+        VALUES (@NewMaSP, @p_TENSP, @p_GIA, @p_MOTA, @p_ANHSP, @p_KICHCO, @p_MAUSAC, @p_TRANGTHAI, @p_SOLUONGTON);
+
+        SELECT @NewMaSP AS MASP, N'Thêm mới sản phẩm thành công' AS MESSAGE;
+    END
+END
+GO

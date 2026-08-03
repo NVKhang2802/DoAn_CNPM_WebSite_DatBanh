@@ -1,0 +1,332 @@
+-- =================================================================
+-- ENTERPRISE SQL SERVER SCHEMA: QL_BANH (Cake Ordering Website)
+-- Handles Database Creation, Auto-Migration for Legacy DBs & Data Seed
+-- =================================================================
+
+IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'QL_BANH')
+BEGIN
+    CREATE DATABASE QL_BANH;
+END
+GO
+
+USE QL_BANH;
+GO
+
+-- 1. BẢNG DANH MỤC (DANHMUC)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DANHMUC]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE DANHMUC (
+        MADM NVARCHAR(10) NOT NULL PRIMARY KEY,
+        TENDM NVARCHAR(100) NOT NULL UNIQUE,
+        MOTA NVARCHAR(255),
+        TRANGTHAI NVARCHAR(50) DEFAULT N'HOẠT ĐỘNG'
+    );
+END
+GO
+
+-- 2. BẢNG SẢN PHẨM (SANPHAM)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[SANPHAM]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE SANPHAM (
+        MASP NVARCHAR(10) NOT NULL PRIMARY KEY,
+        TENSP NVARCHAR(100) NOT NULL,
+        GIA DECIMAL(18,2) NOT NULL CHECK (GIA > 0),
+        MOTA NVARCHAR(1000),
+        ANHSP NVARCHAR(255),
+        KICHCO NVARCHAR(50) DEFAULT N'VỪA',
+        MAUSAC NVARCHAR(50) DEFAULT N'TỰ NHIÊN',
+        TRANGTHAI NVARCHAR(50) NOT NULL DEFAULT N'CÒN HÀNG',
+        MADM NVARCHAR(10) NULL,
+        SOLUONGTON INT DEFAULT 100,
+        NGAYTAO DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+-- Migration Cột cho SANPHAM nếu đã tồn tại từ trước
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[SANPHAM]') AND name = 'MADM')
+    ALTER TABLE SANPHAM ADD MADM NVARCHAR(10) NULL REFERENCES DANHMUC(MADM);
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[SANPHAM]') AND name = 'SOLUONGTON')
+    ALTER TABLE SANPHAM ADD SOLUONGTON INT DEFAULT 100;
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[SANPHAM]') AND name = 'NGAYTAO')
+    ALTER TABLE SANPHAM ADD NGAYTAO DATETIME DEFAULT GETDATE();
+GO
+
+-- 3. BẢNG KHÁCH HÀNG (KHACHHANG)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[KHACHHANG]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE KHACHHANG (
+        MAKH NVARCHAR(10) NOT NULL PRIMARY KEY,
+        HOTEN NVARCHAR(100) NOT NULL,
+        TENDN NVARCHAR(50) NOT NULL UNIQUE,
+        MATKHAU NVARCHAR(255) NOT NULL,
+        EMAIL NVARCHAR(100),
+        DIACHI NVARCHAR(255),
+        SDT VARCHAR(15),
+        NGAYTAO DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+-- 4. BẢNG NHÂN VIÊN (NHANVIEN)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[NHANVIEN]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE NHANVIEN (
+        MANV NVARCHAR(10) NOT NULL PRIMARY KEY,
+        HOTEN NVARCHAR(100) NOT NULL,
+        CHUCVU NVARCHAR(50) NOT NULL DEFAULT N'NHÂN VIÊN',
+        NGAYVAOLAM DATE DEFAULT GETDATE(),
+        TRANGTHAI NVARCHAR(50) DEFAULT N'ĐANG LÀM',
+        TUOI INT,
+        ANHDD NVARCHAR(255),
+        TENDN NVARCHAR(50) NOT NULL UNIQUE,
+        MATKHAU NVARCHAR(255) NOT NULL
+    );
+END
+GO
+
+-- 5. BẢNG TÀI KHOẢN KHÁCH HÀNG (TAIKHOAN_KH)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[TAIKHOAN_KH]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE TAIKHOAN_KH (
+        MATK NVARCHAR(10) NOT NULL PRIMARY KEY,
+        MAKH NVARCHAR(10) NOT NULL UNIQUE REFERENCES KHACHHANG(MAKH) ON DELETE CASCADE,
+        TENDN NVARCHAR(50) NOT NULL UNIQUE,
+        MATKHAU NVARCHAR(255) NOT NULL,
+        NGAYTAO DATETIME DEFAULT GETDATE(),
+        TRANGTHAI NVARCHAR(50) DEFAULT N'ĐANG HOẠT ĐỘNG',
+        SoLanSai INT DEFAULT 0
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[TAIKHOAN_KH]') AND name = 'SoLanSai')
+    ALTER TABLE TAIKHOAN_KH ADD SoLanSai INT DEFAULT 0;
+GO
+
+-- 6. BẢNG VOUCHER KHUYẾN MÃI (VOUCHER)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[VOUCHER]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE VOUCHER (
+        MAKM NVARCHAR(20) NOT NULL PRIMARY KEY,
+        TENKM NVARCHAR(100) NOT NULL,
+        PHENTRAM_GIAM INT DEFAULT 0 CHECK (PHENTRAM_GIAM BETWEEN 0 AND 100),
+        GIAM_TOIDA DECIMAL(18,2) DEFAULT 0,
+        GIA_TRI_TOI_THIEU DECIMAL(18,2) DEFAULT 0,
+        NGAYKETHUC DATETIME,
+        SOLUONG INT DEFAULT 100,
+        TRANGTHAI NVARCHAR(50) DEFAULT N'HOẠT ĐỘNG'
+    );
+END
+GO
+
+-- 7. BẢNG ĐƠN HÀNG (DONHANG)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DONHANG]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE DONHANG (
+        MADH NVARCHAR(10) NOT NULL PRIMARY KEY,
+        MAKH NVARCHAR(10) REFERENCES KHACHHANG(MAKH),
+        MANV NVARCHAR(10) NULL REFERENCES NHANVIEN(MANV),
+        NGAYDAT DATETIME DEFAULT GETDATE(),
+        TONGTIEN DECIMAL(18,2) NOT NULL DEFAULT 0,
+        TRANGTHAI NVARCHAR(50) DEFAULT N'ĐANG XỬ LÝ',
+        DIACHIGIAO NVARCHAR(255),
+        SDTNHAN VARCHAR(15),
+        GHICHU NVARCHAR(500),
+        MAKM NVARCHAR(20) NULL REFERENCES VOUCHER(MAKM),
+        TIENGIAM DECIMAL(18,2) DEFAULT 0
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DONHANG]') AND name = 'DIACHIGIAO')
+    ALTER TABLE DONHANG ADD DIACHIGIAO NVARCHAR(255);
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DONHANG]') AND name = 'SDTNHAN')
+    ALTER TABLE DONHANG ADD SDTNHAN VARCHAR(15);
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DONHANG]') AND name = 'GHICHU')
+    ALTER TABLE DONHANG ADD GHICHU NVARCHAR(500);
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DONHANG]') AND name = 'MAKM')
+    ALTER TABLE DONHANG ADD MAKM NVARCHAR(20) NULL;
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DONHANG]') AND name = 'TIENGIAM')
+    ALTER TABLE DONHANG ADD TIENGIAM DECIMAL(18,2) DEFAULT 0;
+GO
+
+-- 8. BẢNG CHI TIẾT ĐƠN HÀNG (CT_DONHANG)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[CT_DONHANG]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE CT_DONHANG (
+        MADH NVARCHAR(10) NOT NULL REFERENCES DONHANG(MADH) ON DELETE CASCADE,
+        MASP NVARCHAR(10) NOT NULL REFERENCES SANPHAM(MASP),
+        SOLUONG INT NOT NULL DEFAULT 1,
+        GIASP DECIMAL(18,2) NOT NULL DEFAULT 0,
+        KICHCO NVARCHAR(50),
+        PRIMARY KEY (MADH, MASP)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[CT_DONHANG]') AND name = 'KICHCO')
+    ALTER TABLE CT_DONHANG ADD KICHCO NVARCHAR(50);
+GO
+
+-- 9. BẢNG GIỎ HÀNG (GIOHANG)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[GIOHANG]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE GIOHANG (
+        MAGH NVARCHAR(10) NOT NULL PRIMARY KEY,
+        MAKH NVARCHAR(10) NOT NULL UNIQUE REFERENCES KHACHHANG(MAKH) ON DELETE CASCADE,
+        NGAYTHEM DATETIME DEFAULT GETDATE()
+    );
+END
+GO
+
+-- 10. BẢNG CHI TIẾT GIỎ HÀNG (CT_GIOHANG)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[CT_GIOHANG]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE CT_GIOHANG (
+        MAGH NVARCHAR(10) NOT NULL REFERENCES GIOHANG(MAGH) ON DELETE CASCADE,
+        MASP NVARCHAR(10) NOT NULL REFERENCES SANPHAM(MASP),
+        SOLUONG INT NOT NULL DEFAULT 1,
+        KICHCO NVARCHAR(50),
+        PRIMARY KEY (MAGH, MASP)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[CT_GIOHANG]') AND name = 'KICHCO')
+    ALTER TABLE CT_GIOHANG ADD KICHCO NVARCHAR(50);
+GO
+
+-- 11. BẢNG THANH TOÁN (THANHTOAN)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[THANHTOAN]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE THANHTOAN (
+        MATT NVARCHAR(10) NOT NULL PRIMARY KEY,
+        MADH NVARCHAR(10) NOT NULL UNIQUE REFERENCES DONHANG(MADH) ON DELETE CASCADE,
+        PHUONGTHUC NVARCHAR(50) NOT NULL DEFAULT N'TIỀN MẶT',
+        NGAYTT DATETIME DEFAULT GETDATE(),
+        SOTIEN DECIMAL(18,2) NOT NULL DEFAULT 0,
+        TRANGTHAI NVARCHAR(50) NOT NULL DEFAULT N'CHƯA THANH TOÁN',
+        GHICHU NVARCHAR(255)
+    );
+END
+GO
+
+-- 12. BẢNG ĐÁNH GIÁ (DANHGIA)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DANHGIA]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE DANHGIA (
+        MADG NVARCHAR(10) NOT NULL PRIMARY KEY,
+        MASP NVARCHAR(10) NOT NULL REFERENCES SANPHAM(MASP),
+        MAKH NVARCHAR(10) NOT NULL REFERENCES KHACHHANG(MAKH),
+        SOSAO INT NOT NULL CHECK (SOSAO BETWEEN 1 AND 5),
+        BINHLUAN NVARCHAR(500),
+        NGAYDG DATETIME DEFAULT GETDATE(),
+        PHANHOI NVARCHAR(500),
+        NGAYPHANHOI DATETIME
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DANHGIA]') AND name = 'PHANHOI')
+    ALTER TABLE DANHGIA ADD PHANHOI NVARCHAR(500);
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[DANHGIA]') AND name = 'NGAYPHANHOI')
+    ALTER TABLE DANHGIA ADD NGAYPHANHOI DATETIME;
+GO
+
+-- 13. BẢNG NHẬT KÝ ĐĂNG NHẬP (NHATKYDANGNHAP)
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[NHATKYDANGNHAP]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE NHATKYDANGNHAP (
+        MA INT IDENTITY(1,1) PRIMARY KEY,
+        TENDN NVARCHAR(50),
+        THOIGIAN DATETIME DEFAULT GETDATE(),
+        KETQUA NVARCHAR(50),
+        IPADDRESS NVARCHAR(50)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[NHATKYDANGNHAP]') AND name = 'IPADDRESS')
+    ALTER TABLE NHATKYDANGNHAP ADD IPADDRESS NVARCHAR(50);
+GO
+
+-- SEEDING DATA BAN ĐẦU
+-- 1. Danh mục
+IF NOT EXISTS (SELECT * FROM DANHMUC WHERE MADM = 'DM01')
+BEGIN
+    INSERT INTO DANHMUC (MADM, TENDM, MOTA) VALUES
+    ('DM01', N'Bánh Kem Socola', N'Các dòng bánh kem vị socola đậm đà cao cấp'),
+    ('DM02', N'Bánh Trái Cây & Mousse', N'Bánh kem trái cây tươi mát, nhẹ nhàng'),
+    ('DM03', N'Bánh Tiramisu & Phô Mai', N'Bánh Tiramisu Ý & Cheesecake phô mai mềm mịn'),
+    ('DM04', N'Bánh Cưới Hoàng Gia', N'Bánh cưới sang trọng đa tầng');
+END
+
+-- 2. Vouchers mẫu
+IF NOT EXISTS (SELECT * FROM VOUCHER WHERE MAKM = 'BANHMOI10')
+BEGIN
+    INSERT INTO VOUCHER (MAKM, TENKM, PHENTRAM_GIAM, GIAM_TOIDA, GIA_TRI_TOI_THIEU, NGAYKETHUC, SOLUONG) VALUES
+    ('BANHMOI10', N'Giảm 10% Cho Đơn Hàng Bánh Tươi', 10, 50000, 200000, DATEADD(MONTH, 6, GETDATE()), 200),
+    ('FREESHIP', N'Miễn Phí Giao Hàng Cho Đơn Từ 300k', 0, 30000, 300000, DATEADD(MONTH, 6, GETDATE()), 500);
+END
+
+-- 3. Sản phẩm (Map với file ảnh Cake/hinh1.png -> hinh20.png)
+IF NOT EXISTS (SELECT * FROM SANPHAM WHERE MASP = 'SP01')
+BEGIN
+    INSERT INTO SANPHAM (MASP, TENSP, GIA, MOTA, ANHSP, KICHCO, MAUSAC, TRANGTHAI, SOLUONGTON) VALUES
+    ('SP01', N'Bánh Kem Socola Bỉ Premium', 250000, N'Bánh kem socola phủ lớp ganache đắng nhẹ thượng hạng', '/uploads/hinh1.png', N'VỪA', N'NÂU', N'CÒN HÀNG', 50),
+    ('SP02', N'Bánh Kem Dâu Tây Đà Lạt', 220000, N'Bánh kem tươi vị dâu tây tươi mọng nước', '/uploads/hinh2.png', N'VỪA', N'HỒNG', N'CÒN HÀNG', 40),
+    ('SP03', N'Bánh Tiramisu Ý Cổ Điển', 280000, N'Bánh Tiramisu hương vị cafe Espresso và phô mai Mascarpone', '/uploads/hinh3.png', N'NHỎ', N'NÂU NHẠT', N'CÒN HÀNG', 30),
+    ('SP04', N'Bánh Mousse Trà Xanh Matcha Uji', 240000, N'Mousse matcha Nhật Bản thơm mát thanh nhẹ', '/uploads/hinh4.png', N'VỪA', N'XANH LÁ', N'CÒN HÀNG', 45),
+    ('SP05', N'Bánh Mousse Chanh Leo Nhiệt Đới', 230000, N'Mousse chanh leo chua ngọt mát lạnh giải nhiệt', '/uploads/hinh5.png', N'LỚN', N'VÀNG', N'CÒN HÀNG', 35),
+    ('SP06', N'Bánh Cheesecake Việt Quất', 270000, N'Phô mai nướng sốt việt quất tươi mọng', '/uploads/hinh6.png', N'VỪA', N'TÍM', N'CÒN HÀNG', 25),
+    ('SP07', N'Bánh Mousse Xoài Cát Hòa Lộc', 230000, N'Mousse xoài tươi ngọt thanh mượt mà', '/uploads/hinh7.png', N'NHỎ', N'VÀNG NHẠT', N'CÒN HÀNG', 50),
+    ('SP08', N'Bánh Gato Vani Kem Tươi', 190000, N'Gato truyền thống thơm mùi vani Pháp', '/uploads/hinh8.png', N'VỪA', N'TRẮNG', N'CÒN HÀNG', 60),
+    ('SP09', N'Bánh Cưới Hoàng Gia 3 Tầng', 1800000, N'Bánh cưới nghệ thuật đính hoa kem cao cấp', '/uploads/hinh9.png', N'LỚN', N'TRẮNG', N'CÒN HÀNG', 10),
+    ('SP10', N'Hộp 6 Cupcake Dâu & Socola', 150000, N'Hộp 6 bánh cupcake đa dạng hương vị', '/uploads/hinh10.png', N'NHỎ', N'NHIỀU MÀU', N'CÒN HÀNG', 80);
+END
+
+-- 4. Nhân viên & Admin (Mật khẩu default '123456' hashed via bcrypt: $2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L653f.K9bZ8N.S2)
+IF NOT EXISTS (SELECT * FROM NHANVIEN WHERE MANV = 'NV01')
+BEGIN
+    INSERT INTO NHANVIEN (MANV, HOTEN, CHUCVU, TENDN, MATKHAU, ANHDD) VALUES
+    ('NV01', N'Quản Trị Viên Hệ Thống', N'ADMIN', 'admin', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L653f.K9bZ8N.S2', '/uploads/default.png'),
+    ('NV02', N'Nguyễn Văn Quản Lý', N'QUẢN LÝ', 'manager', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L653f.K9bZ8N.S2', '/uploads/default.png');
+END
+
+-- 5. Khách hàng mẫu
+IF NOT EXISTS (SELECT * FROM KHACHHANG WHERE MAKH = 'KH01')
+BEGIN
+    INSERT INTO KHACHHANG (MAKH, HOTEN, TENDN, MATKHAU, EMAIL, DIACHI, SDT) VALUES
+    ('KH01', N'Nguyễn Văn An', 'an01', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L653f.K9bZ8N.S2', 'an01@gmail.com', N'123 Nguyễn Trãi, Thanh Xuân, Hà Nội', '0911111111'),
+    ('KH02', N'Trần Thị Bình', 'binh02', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L653f.K9bZ8N.S2', 'binh02@gmail.com', N'45 Lê Lợi, Ngô Quyền, Hải Phòng', '0922222222');
+
+    INSERT INTO TAIKHOAN_KH (MATK, MAKH, TENDN, MATKHAU) VALUES
+    ('TK01', 'KH01', 'an01', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L653f.K9bZ8N.S2'),
+    ('TK02', 'KH02', 'binh02', '$2a$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6L653f.K9bZ8N.S2');
+
+    INSERT INTO GIOHANG (MAGH, MAKH) VALUES
+    ('GH01', 'KH01'),
+    ('GH02', 'KH02');
+END
+GO
+
+-- =================================================================
+-- NON-CLUSTERED PERFORMANCE INDEXES (PERF-001)
+-- =================================================================
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_SANPHAM_TRANGTHAI_MADM')
+    CREATE INDEX IX_SANPHAM_TRANGTHAI_MADM ON SANPHAM(TRANGTHAI, MADM);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DONHANG_MAKH_TRANGTHAI')
+    CREATE INDEX IX_DONHANG_MAKH_TRANGTHAI ON DONHANG(MAKH, TRANGTHAI);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_CT_GIOHANG_MAGH')
+    CREATE INDEX IX_CT_GIOHANG_MAGH ON CT_GIOHANG(MAGH);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_DANHGIA_MASP')
+    CREATE INDEX IX_DANHGIA_MASP ON DANHGIA(MASP);
+GO
+

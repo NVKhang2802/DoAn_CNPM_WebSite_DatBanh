@@ -1,46 +1,18 @@
-# Build results
-[Dd]ebug/
-[Dd]ebugPublic/
-[Rr]elease/
-[Rr]eleases/
-x64/
-x86/
-[Ww][Ii][Nn]32/
-[Aa][Rr][Mm]/
-[Aa][Rr][Mm]64/
-bld/
-[Bb]in/
-[Oo]bj/
-[Ll]og/
-[Ll]ogs/
+# Node.js & React Dependencies
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.production
+.DS_Store
+*.log
 
-# Visual Studio files
+# IDE & Editor
 .vs/
-*.user
-*.userosscache
-*.sln.docstates
-*.suo
-*.cache
-
-# NuGet
-*.nupkg
-**/[Pp]ackages/*
-!**/[Pp]ackages/build/
-
-# Rider
+.vscode/
 .idea/
 
-# User-specific files
-*.rsuser
-*.suo
-*.user
-*.sln.docstates
-
-# Windows
+# OS Files
 Thumbs.db
-ehthumbs.db
 Desktop.ini
-
-# Others
-*.log
-*.tmp
